@@ -1,12 +1,9 @@
 # Build the B-SS example and publish a GitHub Release when a vX.Y.Z tag is pushed.
 #
-# This workflow lives inside the example folder because that folder is intended
-# to become its own standalone git repository. When it does, this file sits at
-# <repo>/.github/workflows/release.yml and runs automatically.
-#
-# It assumes the CAS BACnet Stack is available as a git submodule. Set the
-# CAS_STACK_DIR repository/Actions variable if your submodule path differs from
-# the default below.
+# The CAS BACnet Stack is a PRIVATE git submodule. GitHub Actions' default token
+# cannot read another private repo, so set a repository secret named
+# CAS_STACK_PAT to a Personal Access Token that has read access to
+# chipkin/cas-bacnet-stack. Without it the submodule checkout will fail.
 name: build-and-release
 
 on:
@@ -17,11 +14,6 @@ on:
 
 permissions:
   contents: write        # needed to create the Release
-
-env:
-  # Path to the CAS BACnet Stack checkout, relative to this example folder.
-  # Override via an Actions variable if your layout differs.
-  CAS_STACK_DIR: ${{ vars.CAS_STACK_DIR || 'submodules/cas-bacnet-stack' }}
 
 jobs:
   build:
@@ -38,13 +30,16 @@ jobs:
             artifact: BACnetExampleBSS-linux-x64
             exe: build/BACnetExampleBSS
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout (with the CAS BACnet Stack submodule)
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          # PAT with read access to the private stack repo; falls back to the
+          # default token (which only works if the stack is made accessible).
+          token: ${{ secrets.CAS_STACK_PAT || github.token }}
 
       - name: Configure
-        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -D CAS_STACK_DIR="${{ env.CAS_STACK_DIR }}"
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release

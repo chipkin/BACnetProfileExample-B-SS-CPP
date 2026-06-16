@@ -1,43 +1,3 @@
----
-title: "BACnet B-SS (Smart Sensor) Profile Example - C++"
-description: "Minimal, copy-paste working example of a BACnet/IP Smart Sensor (B-SS) device in C++17 using the CAS BACnet Stack. Implements ReadProperty (DS-RP-B) and Who-Is/I-Am discovery."
-keywords:
-  - BACnet
-  - BACnet/IP
-  - BACnet device example
-  - BACnet server example C++
-  - how to implement a BACnet device
-  - Smart Sensor
-  - B-SS
-  - device profile
-  - ReadProperty
-  - DS-RP-B
-  - Who-Is
-  - I-Am
-  - CAS BACnet Stack
-  - Chipkin
-  - ANSI/ASHRAE 135
-  - Protocol Revision 24
-  - Network Port object
-  - C++17
-  - CMake
-  - UDP 47808
-language: C++
-profile: B-SS (Smart Sensor)
-services_enabled:
-  - ReadProperty (DS-RP-B)
-  - Who-Is / I-Am
-platforms:
-  - Windows
-  - Linux
-  - macOS
-difficulty: Beginner
-estimated_build_time: "A few minutes (first build compiles the stack)"
-app_version: "1.0.0"
-documented_for_stack_version: "5.4.2.0"
-license: CC0-1.0
----
-
 # BACnet B-SS (Smart Sensor) - C++ example
 
 A minimal, copy-paste-friendly example showing how to implement the BACnet
@@ -93,55 +53,85 @@ Device 389001  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
     └── Network Port 1       "Vermilion"   the BACnet/IP port     (required on every device)
 ```
 
-A BACnet client discovers `Rainbow`, then reads the present value and name of
-each object:
-
-```
-Client  ──  Who-Is  ───────────────────────────▶   Rainbow (389001)
-Client  ◀─  I-Am (389001, vendor 389)  ─────────    Rainbow
-Client  ──  ReadProperty(AI 1, Present_Value)  ─▶   Rainbow
-Client  ◀─  21.5  ──────────────────────────────    Rainbow
-```
-
 Object names follow this series' colour-naming convention (Device is always
 "Rainbow").
 
+## What this example supports
+
+The example implements exactly the capabilities below - and nothing more, which
+is the point of a profile example. These capabilities satisfy the **B-SS (BACnet
+Smart Sensor)** profile; because they are also the baseline required by
+**B-GENERAL**, this example satisfies the **B-GENERAL** profile as well.
+
+### BIBBs (BACnet Interoperability Building Blocks)
+
+| BIBB | Description | Supported |
+|------|-------------|:---------:|
+| DS-RP-B | Data Sharing - ReadProperty - B | ✅ |
+| DM-DDB-B | Device Management - Dynamic Device Binding - B | ✅ |
+| DM-DOB-B | Device Management - Dynamic Object Binding - B | ✅ |
+
+### Services (executed / B-side)
+
+| Service | Notes |
+|---------|-------|
+| ReadProperty | Responds to property reads (DS-RP-B). |
+| Who-Is / I-Am | Answers Who-Is with I-Am, and broadcasts an I-Am on start-up (DM-DDB-B). |
+| Who-Has / I-Have | Answers Who-Has with I-Have (DM-DOB-B). |
+
+### Object types
+
+| Object type | Instance | Name |
+|-------------|:--------:|------|
+| Device | 389001 | Rainbow |
+| Analog Input | 1 | Bronze |
+| Binary Input | 1 | Emerald |
+| Multi-State Input | 1 | Hot Pink |
+| Network Port | 1 | Vermilion |
+
+## What's in this repository
+
+This is a **self-contained** project. It ships:
+
+- `main.cpp` - the example device.
+- `common/` - the shared helper (UDP, callbacks, CLI, keyboard) vendored in.
+- `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack as a git submodule**.
+
+The stack is compiled from source - there is no prebuilt library or DLL to ship.
+The CAS BACnet Stack is a private repository; you need access to it (it comes
+with a CAS BACnet Stack license) to fetch the submodule.
+
 ## Prerequisites
 
-You need a C++ toolchain, CMake, and this repository checked out **with
-submodules** (the CAS BACnet Stack is a submodule).
+- A C++17 compiler (MSVC, GCC, or Clang).
+- CMake >= 3.15.
+- Git (to fetch the stack submodule).
 
 ### Windows
 
-1. **C++ compiler** - install
-   [Visual Studio Community](https://visualstudio.microsoft.com/downloads/)
-   (free) and select the **"Desktop development with C++"** workload during
-   setup. (Build Tools for Visual Studio also works.)
-2. **CMake** - install from <https://cmake.org/download/> (Windows x64
-   installer), or via `winget install Kitware.CMake`. Verify in a new
-   PowerShell: `cmake --version` (need >= 3.15).
-3. **The code with submodules**:
-   ```powershell
-   git clone --recursive https://github.com/chipkin/<this-repo>.git
-   # already cloned without --recursive? run:
-   git submodule update --init --recursive
-   ```
+- **C++ compiler** - install
+  [Visual Studio Community](https://visualstudio.microsoft.com/downloads/)
+  (free) and select the **"Desktop development with C++"** workload.
+- **CMake** - from <https://cmake.org/download/>, or `winget install Kitware.CMake`.
 
 ### Linux / macOS
 
-1. **C++ compiler & CMake**:
-   - Debian/Ubuntu: `sudo apt install build-essential cmake git`
-   - macOS: `xcode-select --install` and `brew install cmake`
-   - Verify: `cmake --version` (need >= 3.15) and `c++ --version`.
-2. **The code with submodules** - same `git clone --recursive` /
-   `git submodule update --init --recursive` as above.
+- Debian/Ubuntu: `sudo apt install build-essential cmake git`
+- macOS: `xcode-select --install` and `brew install cmake`
 
-No prebuilt library or DLL is needed - this example compiles the stack from
-source.
+## Get the code
+
+Clone this repository **and its submodule** (the CAS BACnet Stack):
+
+```bash
+git clone --recursive https://github.com/chipkin/BACnetProfileExample-B-SS-CPP.git
+cd BACnetProfileExample-B-SS-CPP
+
+# already cloned without --recursive? fetch the submodule:
+git submodule update --init --recursive
+```
 
 ## Build
-
-From this folder (`examples/BACnetProfileExample-B-SS-CPP/`):
 
 ```bash
 cmake -B build -S .
@@ -151,12 +141,8 @@ cmake --build build --config Release
 > **First build takes a few minutes** - it compiles the entire CAS BACnet Stack
 > (~460 source files) once. Incremental rebuilds after that are fast.
 
-**Building a standalone copy** (outside this repo)? Point CMake at your own copy
-of the stack:
-
-```bash
-cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack
-```
+If your CAS BACnet Stack lives somewhere other than the bundled submodule, point
+CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 
 ## Run
 
@@ -280,22 +266,14 @@ outputs, COV, alarms) means implementing a richer profile.
   <https://store.chipkin.com/services/stacks/bacnet-stack>.
 - **CAS BACnet Explorer** - client for testing this device:
   <https://store.chipkin.com/products/tools/cas-bacnet-explorer>.
-- **Shared helper used by this example** - [`../common/README.md`](../common/README.md).
+- **Shared helper used by this example** - [`common/README.md`](common/README.md).
 
-## Copy this into your own project
+## Use this in your own project
 
-This example uses the shared helper in [`../common`](../common) (one copy, used
-by every example in the series). To take it as a standalone project, copy **this
-folder and `../common`** together, then point CMake at your copies of the helper
-and the CAS BACnet Stack:
+This repository is self-contained: clone it (with the submodule) and build, then
+copy what you need into your product. The example source code is dedicated to the
+public domain under [CC0-1.0](LICENSE) - use it for anything, no attribution
+required. The CAS BACnet Stack is a separate, commercially licensed product and
+is not covered by CC0.
 
-```bash
-cmake -B build -S . \
-  -D EXAMPLES_COMMON_DIR=/path/to/common \
-  -D CAS_STACK_DIR=/path/to/cas-bacnet-stack
-```
-
-The example source code is dedicated to the public domain under
-[CC0-1.0](LICENSE) - use it for anything, no attribution required. The CAS
-BACnet Stack is a separate, commercially licensed product and is not covered by
-CC0. See also [CHANGELOG.md](CHANGELOG.md) and [AGENTS.md](AGENTS.md).
+See also [CHANGELOG.md](CHANGELOG.md) and [AGENTS.md](AGENTS.md).

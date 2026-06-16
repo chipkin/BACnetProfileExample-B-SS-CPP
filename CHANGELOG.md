@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive keys: `h` help, `q` quit, up/down nudge Analog Input 1 by +/-1.1.
 - Command-line options: `--port <n>` and `--deviceID <n>`.
 - Cross-platform CMake build that compiles the CAS BACnet Stack from source.
+- Self-contained repository: the shared helper is vendored in `common/`, and the
+  CAS BACnet Stack is included as a git submodule at
+  `submodules/cas-bacnet-stack` - clone with `--recursive` and build.
 - GitHub Actions workflow that builds Windows + Linux and publishes a release on
   a `vX.Y.Z` tag.
 

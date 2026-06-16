@@ -11,26 +11,27 @@ device profile using the CAS BACnet Stack. It is one of a series - one git repo
 per BACnet profile. The top priority is that the code reads like a tutorial a
 customer can learn from and copy-paste. Favour clarity over cleverness.
 
-## Dependencies (not in this repo)
+## Layout
 
-This repo intentionally contains only the example's own files. Two things it
-needs live elsewhere:
+This repository is self-contained:
 
-- **The CAS BACnet Stack** (compiled from source). Point CMake at it with
-  `-D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
-- **The shared example helper** (`common/`), normally at `../common` in the
-  example collection. Point CMake at it with
-  `-D EXAMPLES_COMMON_DIR=/path/to/common`.
+- `main.cpp` - the example device.
+- `common/` - the shared helper (vendored).
+- `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack** as a git submodule
+  (private; compiled from source). After cloning, run
+  `git submodule update --init --recursive`.
 
 ## Build
 
 ```bash
-cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack -D EXAMPLES_COMMON_DIR=/path/to/common
+git submodule update --init --recursive   # once, if not cloned with --recursive
+cmake -B build -S .
 cmake --build build --config Release
 ```
 
 The first build compiles the whole stack (~460 files) and takes a few minutes;
-later incremental builds are fast.
+later incremental builds are fast. Use `-D CAS_STACK_DIR=...` only if your stack
+lives outside the bundled submodule.
 
 ## Run
 
