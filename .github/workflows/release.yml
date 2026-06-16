@@ -1,0 +1,81 @@
+# Build the B-SS example and publish a GitHub Release when a vX.Y.Z tag is pushed.
+#
+# This workflow lives inside the example folder because that folder is intended
+# to become its own standalone git repository. When it does, this file sits at
+# <repo>/.github/workflows/release.yml and runs automatically.
+#
+# It assumes the CAS BACnet Stack is available as a git submodule. Set the
+# CAS_STACK_DIR repository/Actions variable if your submodule path differs from
+# the default below.
+name: build-and-release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"        # e.g. v1.0.0
+  workflow_dispatch:     # also allow manual runs
+
+permissions:
+  contents: write        # needed to create the Release
+
+env:
+  # Path to the CAS BACnet Stack checkout, relative to this example folder.
+  # Override via an Actions variable if your layout differs.
+  CAS_STACK_DIR: ${{ vars.CAS_STACK_DIR || 'submodules/cas-bacnet-stack' }}
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: BACnetExampleBSS-windows-x64
+            exe: build/Release/BACnetExampleBSS.exe
+          - os: ubuntu-latest
+            artifact: BACnetExampleBSS-linux-x64
+            exe: build/BACnetExampleBSS
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -D CAS_STACK_DIR="${{ env.CAS_STACK_DIR }}"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "${{ matrix.exe }}" dist/
+          cp README.md LICENSE dist/ 2>/dev/null || true
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/*
+
+  release:
+    name: publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: artifacts/**/*
