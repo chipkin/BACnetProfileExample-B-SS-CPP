@@ -23,8 +23,10 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "ws2_32.lib")
+// ws2_32 + iphlpapi are linked by CMakeLists.txt. If you copy this file into a
+// non-CMake MSVC project, add:
+//   #pragma comment(lib, "ws2_32.lib")
+//   #pragma comment(lib, "iphlpapi.lib")
 #else
 #include <termios.h>
 #include <unistd.h>
@@ -70,6 +72,9 @@ uint16_t HelperReceiveMessage(uint8_t* message, const uint16_t maxMessageLength,
 
     uint8_t fromIp[4];
     uint16_t fromPort = 0;
+    // Receive() copies at most maxMessageLength bytes; a datagram larger than the
+    // stack's buffer is truncated to that length (fine for UDP - the stack will
+    // simply fail to decode and ignore an over-length frame).
     const uint16_t bytesRead = g_udp.Receive(message, maxMessageLength, fromIp, &fromPort);
     if (bytesRead == 0) {
         return 0; // no datagram waiting
@@ -139,10 +144,15 @@ bool GetPrimaryIPv4(uint8_t ip[4], uint8_t mask[4]) {
         return false;
     }
     for (const IP_ADAPTER_INFO* a = adapters; a != NULL; a = a->Next) {
-        const unsigned long ipN = inet_addr(a->IpAddressList.IpAddress.String);
-        const unsigned long maskN = inet_addr(a->IpAddressList.IpMask.String);
-        if (ipN == 0 || ipN == INADDR_NONE) {
-            continue;            // interface has no address
+        struct in_addr ipAddr, maskAddr;
+        if (inet_pton(AF_INET, a->IpAddressList.IpAddress.String, &ipAddr) != 1) {
+            continue;            // not a valid IPv4 address
+        }
+        inet_pton(AF_INET, a->IpAddressList.IpMask.String, &maskAddr);
+        const uint32_t ipN = ipAddr.s_addr;   // network byte order
+        const uint32_t maskN = maskAddr.s_addr;
+        if (ipN == 0) {
+            continue;            // interface has no address (0.0.0.0)
         }
         if ((ipN & 0xFF) == 127) {
             continue;            // skip loopback (127.x.x.x)

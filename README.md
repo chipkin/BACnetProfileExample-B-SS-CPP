@@ -6,7 +6,7 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests, and
 is discoverable via **Who-Is / I-Am**.
 
-> **Versions:** this document describes **example v1.0.0**, built and verified
+> **Versions:** this document describes **example v1.0.1**, built and verified
 > against **CAS BACnet Stack 5.4.2.0** at **Protocol_Revision 24**.
 
 ## What is a B-SS (BACnet Smart Sensor) profile?
@@ -89,17 +89,47 @@ Smart Sensor)** profile; because they are also the baseline required by
 | Multi-State Input | 1 | Hot Pink |
 | Network Port | 1 | Vermilion |
 
+## Requires the CAS BACnet Stack (licensed product)
+
+This example **builds against the CAS BACnet Stack, which is a commercial Chipkin
+product** - it is not free or open source, and there is no public/trial build.
+The stack is referenced here as the **private** git submodule
+`submodules/cas-bacnet-stack`; you can only fetch and build it once you have a CAS
+BACnet Stack license and access to that repository.
+
+**To get the CAS BACnet Stack (and access to build this example), contact
+Chipkin:** <https://store.chipkin.com/services/stacks/bacnet-stack> or
+sales@chipkin.com.
+
+You can still read all of this example's source on GitHub to evaluate the
+approach and the amount of code involved.
+
 ## What's in this repository
 
 This is a **self-contained** project. It ships:
 
 - `main.cpp` - the example device.
 - `common/` - the shared helper (UDP, callbacks, CLI, keyboard) vendored in.
-- `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack as a git submodule**.
+- `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack as a git submodule**
+  (private; requires a license - see above). Compiled from source; no prebuilt
+  library or DLL is shipped.
 
-The stack is compiled from source - there is no prebuilt library or DLL to ship.
-The CAS BACnet Stack is a private repository; you need access to it (it comes
-with a CAS BACnet Stack license) to fetch the submodule.
+## Footprint & performance
+
+This example statically compiles the **entire** CAS BACnet Stack into one
+executable (no external runtime/DLL). Release-build sizes of the whole
+application (stack + example):
+
+| Platform | Binary | Size |
+|----------|--------|------|
+| Windows x64 (MSVC, Release) | `BACnetExampleBSS.exe` | ~2.6 MB |
+| Linux x64 (GCC, Release) | `BACnetExampleBSS` | ~6 MB unstripped (`strip` cuts it substantially) |
+
+These are whole-application sizes. The stack's flash/RAM footprint on a
+constrained MCU, CPU cost per `BACnetStack_Tick()`, ReadProperty latency, and
+the maximum number of objects depend on your target and configuration. For
+embedded-sizing and benchmark figures, contact Chipkin -
+<https://store.chipkin.com/services/stacks/bacnet-stack>.
 
 ## Prerequisites
 

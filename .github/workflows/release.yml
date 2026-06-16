@@ -51,6 +51,20 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
+      - name: Smoke test (starts, binds, and stays up)
+        shell: bash
+        run: |
+          "${{ matrix.exe }}" --port 47808 > smoke.log 2>&1 &
+          PID=$!
+          sleep 3
+          if kill -0 "$PID" 2>/dev/null; then
+            kill "$PID" 2>/dev/null || true
+          else
+            echo "FAIL: device exited early"; cat smoke.log; exit 1
+          fi
+          grep -q "ready" smoke.log || { echo "FAIL: no 'ready' line"; cat smoke.log; exit 1; }
+          echo "OK:"; cat smoke.log
+
       - name: Package
         shell: bash
         run: |

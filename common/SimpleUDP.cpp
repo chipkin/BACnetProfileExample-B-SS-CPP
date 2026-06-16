@@ -12,7 +12,8 @@
 #if defined(_WIN32)
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
+// ws2_32 is linked by CMakeLists.txt. If you copy this file into a non-CMake
+// MSVC project, add: #pragma comment(lib, "ws2_32.lib")
 typedef int socklen_t;
 #define INVALID_SOCK INVALID_SOCKET
 #else

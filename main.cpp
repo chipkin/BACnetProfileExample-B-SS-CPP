@@ -64,12 +64,17 @@ using namespace CASBACnetStackExampleConstants;
 // 1. Example + device configuration
 // -----------------------------------------------------------------------------
 static const char* APP_NAME = "BACnet B-SS (Smart Sensor) Example - C++";
-static const char* APP_VERSION = "1.0.0";
+static const char* APP_VERSION = "1.0.1";
 
 // The device instance. BACnet requires this to be configurable, so it defaults
 // to 389001 and can be overridden on the command line with --deviceID.
 static uint32_t g_deviceInstance = 389001;
-static const uint32_t VENDOR_IDENTIFIER = 389;        // 389 = Chipkin Automation Systems
+
+// Your BACnet Vendor Identifier. 389 = Chipkin Automation Systems; change this
+// to YOUR company's vendor ID before shipping a product. Vendor IDs are assigned
+// by ASHRAE - request one (free) at https://bacnet.org/assigned-vendor-ids/.
+// Update VENDOR_NAME below to match.
+static const uint32_t VENDOR_IDENTIFIER = 389;
 static const char* DEVICE_NAME = "Rainbow";
 static const char* DEVICE_DESCRIPTION =
     "Chipkin CAS BACnet Stack example - B-SS (Smart Sensor) profile. "
@@ -126,6 +131,12 @@ bool GetPropertyReal(const uint32_t deviceInstance, const uint16_t objectType,
         objectType == OBJECT_TYPE_ANALOG_INPUT &&
         objectInstance == ANALOG_INPUT_INSTANCE &&
         propertyIdentifier == PROPERTY_IDENTIFIER_PRESENT_VALUE) {
+        // ON REAL HARDWARE: return the live sensor reading here. Read it from a
+        // cached variable that your hardware updates (as g_analogInput1Value is),
+        // NOT directly from a slow/blocking device (I2C, SPI, ADC conversion):
+        // this callback runs on the BACnetStack_Tick() thread, so blocking it
+        // delays all BACnet processing. Sample the sensor on a timer/another
+        // thread and just hand back the latest value from here.
         *value = g_analogInput1Value;
         return true;
     }
@@ -175,8 +186,6 @@ bool GetPropertyUnsignedInteger(const uint32_t deviceInstance, const uint16_t ob
                                 const uint32_t objectInstance, const uint32_t propertyIdentifier,
                                 uint32_t* value, const bool useArrayIndex,
                                 const uint32_t propertyArrayIndex) {
-    (void)useArrayIndex;
-    (void)propertyArrayIndex;
     if (deviceInstance != g_deviceInstance) {
         return false;
     }
@@ -188,6 +197,13 @@ bool GetPropertyUnsignedInteger(const uint32_t deviceInstance, const uint16_t ob
         }
         if (propertyIdentifier == PROPERTY_IDENTIFIER_NUMBER_OF_STATES) {
             *value = MULTI_STATE_INPUT_NUMBER_OF_STATES; // required property
+            return true;
+        }
+        // State_Text is an array. The stack asks for its LENGTH here (array
+        // index 0) before reading each element via GetPropertyCharString.
+        if (propertyIdentifier == PROPERTY_IDENTIFIER_STATE_TEXT &&
+            useArrayIndex && propertyArrayIndex == 0) {
+            *value = MULTI_STATE_INPUT_NUMBER_OF_STATES;
             return true;
         }
     }
@@ -288,9 +304,21 @@ bool GetPropertyCharString(const uint32_t deviceInstance, const uint16_t objectT
                            char* value, uint32_t* valueElementCount,
                            const uint32_t maxElementCount, uint8_t* encodingType,
                            const bool useArrayIndex, const uint32_t propertyArrayIndex) {
-    (void)useArrayIndex;
-    (void)propertyArrayIndex;
     if (deviceInstance != g_deviceInstance) {
+        return false;
+    }
+
+    // State_Text (optional) - one label per state of the Multi-State Input. It is
+    // a BACnet array, so the stack asks for one element at a time by index
+    // (1..Number_Of_States). Present_Value 1 -> "On", 2 -> "Off", 3 -> "Auto".
+    if (objectType == OBJECT_TYPE_MULTI_STATE_INPUT &&
+        objectInstance == MULTI_STATE_INPUT_INSTANCE &&
+        propertyIdentifier == PROPERTY_IDENTIFIER_STATE_TEXT && useArrayIndex) {
+        static const char* const stateText[] = { "On", "Off", "Auto" };
+        if (propertyArrayIndex >= 1 && propertyArrayIndex <= MULTI_STATE_INPUT_NUMBER_OF_STATES) {
+            return ReturnCharacterString(stateText[propertyArrayIndex - 1], value,
+                                         valueElementCount, maxElementCount, encodingType);
+        }
         return false;
     }
 
@@ -416,24 +444,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // --- Enable the REQUIRED properties the application supplies -------------
-    // The stack auto-generates most required properties (Object_Identifier,
-    // Object_Type, Status_Flags, Event_State, Object_List, Protocol_*). The
-    // remaining required properties have to be enabled so the stack will ask our
-    // callbacks for them. (Present_Value and Object_Name are enabled by default.)
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_INSTANCE, PROPERTY_IDENTIFIER_UNITS, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_INSTANCE, PROPERTY_IDENTIFIER_OUT_OF_SERVICE, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_BINARY_INPUT, BINARY_INPUT_INSTANCE, PROPERTY_IDENTIFIER_POLARITY, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_BINARY_INPUT, BINARY_INPUT_INSTANCE, PROPERTY_IDENTIFIER_OUT_OF_SERVICE, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_INPUT, MULTI_STATE_INPUT_INSTANCE, PROPERTY_IDENTIFIER_NUMBER_OF_STATES, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_INPUT, MULTI_STATE_INPUT_INSTANCE, PROPERTY_IDENTIFIER_OUT_OF_SERVICE, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_NETWORK_PORT, NETWORK_PORT_INSTANCE, PROPERTY_IDENTIFIER_OUT_OF_SERVICE, true);
-    // The Network Port's BACnet/IP addressing properties (served by our callbacks).
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_NETWORK_PORT, NETWORK_PORT_INSTANCE, PROPERTY_IDENTIFIER_IP_ADDRESS, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_NETWORK_PORT, NETWORK_PORT_INSTANCE, PROPERTY_IDENTIFIER_IP_SUBNET_MASK, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_NETWORK_PORT, NETWORK_PORT_INSTANCE, PROPERTY_IDENTIFIER_IP_DEFAULT_GATEWAY, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_NETWORK_PORT, NETWORK_PORT_INSTANCE, PROPERTY_IDENTIFIER_BACNET_IP_UDP_PORT, true);
-    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_NETWORK_PORT, NETWORK_PORT_INSTANCE, PROPERTY_IDENTIFIER_BACNET_IP_MODE, true);
+    // --- Enable the OPTIONAL properties we choose to expose ------------------
+    // The stack automatically enables an object's REQUIRED properties when the
+    // object is added (AddObject / AddNetworkPortObject) - so Units, Polarity,
+    // Number_Of_States, Out_Of_Service, and the Network Port's BACnet/IP
+    // addressing (IP_Address, IP_Subnet_Mask, BACnet_IP_UDP_Port, ...) are
+    // already enabled; our Get* callbacks just supply their values. Only
+    // OPTIONAL properties need SetPropertyEnabled. State_Text is optional on a
+    // Multi-State Input, so we enable it here (and serve it in GetPropertyCharString).
+    BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_MULTI_STATE_INPUT,
+                                   MULTI_STATE_INPUT_INSTANCE, PROPERTY_IDENTIFIER_STATE_TEXT, true);
 
     // Who-Is is answered automatically. The spec also requires a device to
     // announce itself on start-up, so broadcast an unsolicited I-Am now (to the

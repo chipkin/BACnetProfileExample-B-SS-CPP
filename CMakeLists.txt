@@ -69,6 +69,17 @@ target_include_directories(BACnetExampleBSS PRIVATE
     "${EXAMPLES_COMMON_DIR}"
     "${CAS_STACK_SOURCE_DIR}")
 
+# --- Warnings on OUR sources only -------------------------------------------
+# Apply strict warnings to the example + helper sources, but NOT to the bundled
+# third-party stack (~460 files) which would be noisy and isn't ours to fix.
+if(MSVC)
+    set(EXAMPLE_WARNINGS "/W4")
+else()
+    set(EXAMPLE_WARNINGS "-Wall;-Wextra")
+endif()
+set_source_files_properties(main.cpp ${COMMON_SOURCES}
+    PROPERTIES COMPILE_OPTIONS "${EXAMPLE_WARNINGS}")
+
 # --- Platform sockets -------------------------------------------------------
 # ws2_32  = Winsock (UDP); iphlpapi = GetAdaptersInfo (local broadcast address).
 if(WIN32)

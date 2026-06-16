@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-16
+
+### Fixed
+
+- Stop manually enabling **required** object properties - the stack already
+  enables them when the object is added (`AddObject` / `AddNetworkPortObject`).
+  Only optional properties need `SetPropertyEnabled` now. (Resolves
+  [#1](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/issues/1).)
+- Use `inet_pton` instead of the deprecated `inet_addr` (MSVC C4996).
+
+### Added
+
+- `State_Text` (optional) on Multi-State Input 1: "On", "Off", "Auto".
+- README: a "Footprint & performance" section; a clear note that the CAS BACnet
+  Stack is a **licensed product** (no public/trial build - contact Chipkin).
+- Source comments: how to change the Vendor Identifier; how to feed live sensor
+  readings into the property callbacks without blocking the tick loop.
+
+### Changed
+
+- Build warnings (`-Wall -Wextra` / `/W4`) on the example's own sources only.
+- CI: a smoke-test step (starts, binds, stays up) before packaging.
+
 ## [1.0.0] - 2026-06-16
 
 ### Added
@@ -34,5 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow that builds Windows + Linux and publishes a release on
   a `vX.Y.Z` tag.
 
-[Unreleased]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/releases/tag/v1.0.0
