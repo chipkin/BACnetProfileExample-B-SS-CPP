@@ -30,6 +30,13 @@ jobs:
             artifact: BACnetExampleBSS-linux-x64
             exe: build/BACnetExampleBSS
     steps:
+      # The CAS BACnet Stack submodule has deeply-nested paths (googletest
+      # packages) that exceed Windows' 260-char MAX_PATH; enable long paths so
+      # the submodule checkout succeeds.
+      - name: Enable git long paths (Windows)
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
+
       - name: Checkout (with the CAS BACnet Stack submodule)
         uses: actions/checkout@v4
         with:
