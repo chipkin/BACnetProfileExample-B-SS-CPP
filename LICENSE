@@ -122,10 +122,3 @@ express Statement of Purpose.
 
 For more information, please see
 <https://creativecommons.org/publicdomain/zero/1.0/>
-
-
--------------------------------------------------------------------------------
-NOTE: This CC0 public-domain dedication applies to the EXAMPLE source code in
-this repository only. The CAS BACnet Stack that this example compiles against is
-a separate, commercially licensed product of Chipkin Automation Systems Inc. and
-is NOT covered by this dedication. See the CAS BACnet Stack's own license.
