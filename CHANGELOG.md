@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `GetPrimaryIPv4` (Windows): check the subnet-mask `inet_pton` return and
+  zero-initialize the `in_addr`, so a mask string that fails to parse can no
+  longer be read uninitialized (it falls back to the limited broadcast).
+
 ## [1.0.1] - 2026-06-16
 
 ### Fixed
