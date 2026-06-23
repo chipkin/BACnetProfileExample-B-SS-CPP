@@ -6,8 +6,17 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests, and
 is discoverable via **Who-Is / I-Am**.
 
-> **Versions:** this document describes **example v1.0.1**, built and verified
-> against **CAS BACnet Stack 5.4.2.0** at **Protocol_Revision 24**.
+> **Versions:** this document describes **example v1.0.1**, built against
+> **CAS BACnet Stack v6.x.x** at **Protocol_Revision 24**. (v6.x.x is
+> under active development; the exact linked build prints in the start-up banner.)
+
+> **This example also serves as the B-GENERAL example.** **B-GENERAL** (the
+> ASHRAE 135 Annex L "general" catch-all device profile) requires only
+> **DS-RP-B** plus Dynamic Device/Object Binding (Who-Is/I-Am, Who-Has/I-Have) -
+> exactly the B-SS baseline this example implements. The two profiles share the
+> same required capabilities, so there is **no separate B-GENERAL example** in
+> this series: **use this repository as the reference for both B-SS and
+> B-GENERAL.** A device built from this example may claim either profile (or both).
 
 ## What is a B-SS (BACnet Smart Sensor) profile?
 
@@ -188,7 +197,7 @@ Expected output:
 
 ```
 BACnet B-SS (Smart Sensor) Example - C++ v1.0.0
-CAS BACnet Stack version: 5.4.2.0
+CAS BACnet Stack version: <the linked build, printed at start-up>
 FYI: Listening for BACnet/IP on UDP port 47808.
 FYI: Device 389001 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)
@@ -212,18 +221,26 @@ firewall. To use a different port, pass `--port` (see below).
 
 ### Interactive commands
 
-While the example runs, these keys are available (shared across all examples in
-the series):
+While the example runs, these keys are available (the edit-mode system is shared
+across every example in the series and lives in `common/`):
 
 | Key | Action |
 |-----|--------|
 | `h` | Show the version information and this command list. |
 | `q` | Quit. |
-| up arrow | Increase Analog Input 1 (`Bronze`) by 1.1. |
-| down arrow | Decrease Analog Input 1 (`Bronze`) by 1.1. |
+| `e` | Enter **edit mode** to change an object's live value. |
 
-The up/down keys change the live `Present_Value` of the analog input, so a client
-re-reading it sees the new value.
+In edit mode, press a number to select an object, then **up/down** to change it,
+**space** to toggle a binary / step a multi-state, and **esc** to exit:
+
+| In edit mode | Object | Effect |
+|--------------|--------|--------|
+| `1`, then up/down | Analog Input 1 (`Bronze`) | raise / lower the temperature by 1.1 |
+| `2`, then up/down/space | Binary Input 1 (`Emerald`) | turn active / inactive |
+| `3`, then up/down/space | Multi-State Input 1 (`Hot Pink`) | step through states 1..3 |
+
+Changing a value updates that object's live `Present_Value`, so a client
+re-reading it sees the new value (and any COV subscription is notified).
 
 ## Verify
 
