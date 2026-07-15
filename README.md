@@ -6,8 +6,8 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests, and
 is discoverable via **Who-Is / I-Am**.
 
-> **Versions:** this document describes **example v1.0.1**, built and verified
-> against **CAS BACnet Stack 5.4.2.0** at **Protocol_Revision 24**.
+> **Versions:** this document describes **example v1.1.0**, built and verified
+> against **CAS BACnet Stack 6.0.0.0** (the `6.x` branch) at **Protocol_Revision 24**, with `common/` helper **v1.1.0**.
 
 ## What is a B-SS (BACnet Smart Sensor) profile?
 
@@ -187,8 +187,9 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SS (Smart Sensor) Example - C++ v1.0.0
-CAS BACnet Stack version: 5.4.2.0
+BACnet B-SS (Smart Sensor) Example - C++ v1.1.0
+CAS BACnet Stack version: 6.0.0.0
+Common helper (common/) version: 1.1.0
 FYI: Listening for BACnet/IP on UDP port 47808.
 FYI: Device 389001 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)

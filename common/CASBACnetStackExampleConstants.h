@@ -22,9 +22,12 @@ namespace CASBACnetStackExampleConstants {
 // -- BACnet object types (Object_Type enumeration) -------------------------
 //    Full list: submodules/cas-bacnet-stack/source/BACnetObjectType.h
 static const uint16_t OBJECT_TYPE_ANALOG_INPUT = 0;
+static const uint16_t OBJECT_TYPE_ANALOG_OUTPUT = 1;
 static const uint16_t OBJECT_TYPE_BINARY_INPUT = 3;
+static const uint16_t OBJECT_TYPE_BINARY_OUTPUT = 4;
 static const uint16_t OBJECT_TYPE_DEVICE = 8;
 static const uint16_t OBJECT_TYPE_MULTI_STATE_INPUT = 13;
+static const uint16_t OBJECT_TYPE_MULTI_STATE_OUTPUT = 14;
 static const uint16_t OBJECT_TYPE_NETWORK_PORT = 56;
 
 // -- BACnet property identifiers (Property_Identifier enumeration) ----------
@@ -48,6 +51,9 @@ static const uint32_t PROPERTY_IDENTIFIER_OBJECT_TYPE = 79;
 static const uint32_t PROPERTY_IDENTIFIER_OUT_OF_SERVICE = 81;
 static const uint32_t PROPERTY_IDENTIFIER_POLARITY = 84;
 static const uint32_t PROPERTY_IDENTIFIER_PRESENT_VALUE = 85;
+static const uint32_t PROPERTY_IDENTIFIER_PRIORITY_ARRAY = 87;
+static const uint32_t PROPERTY_IDENTIFIER_RELINQUISH_DEFAULT = 104;
+static const uint32_t PROPERTY_IDENTIFIER_CURRENT_COMMAND_PRIORITY = 431;
 static const uint32_t PROPERTY_IDENTIFIER_REFERENCE_PORT = 483;
 static const uint32_t PROPERTY_IDENTIFIER_STATE_TEXT = 110;
 static const uint32_t PROPERTY_IDENTIFIER_STATUS_FLAGS = 111;
@@ -72,6 +78,13 @@ static const uint32_t BACNET_IP_MODE_NORMAL = 0;
 //    Full list: submodules/cas-bacnet-stack/source/BACnetServicesSupported.h
 //    Used with BACnetStack_SetServiceEnabled() to turn individual services on/off.
 static const uint32_t SERVICE_READ_PROPERTY = 12;
+static const uint32_t SERVICE_WRITE_PROPERTY = 15;
+
+// -- BACnet error codes (Error_Code enumeration) ----------------------------
+//    Full list: submodules/cas-bacnet-stack/source/BACnetErrorCode.h
+//    A SetProperty* callback writes one of these to its errorCode out-parameter
+//    and returns false to reject a write with that BACnet Error-PDU.
+static const uint32_t ERROR_CODE_VALUE_OUT_OF_RANGE = 37;
 
 // -- Transport network type (BACnetPacket::NetworkType, for the send/receive
 //    callbacks and SendIAm).

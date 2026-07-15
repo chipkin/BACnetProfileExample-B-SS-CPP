@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-14
+
+### Changed
+
+- **CAS BACnet Stack pinned to the head of the `6.x` branch** (`14676437`).
+  The previous pin was on a pre-6.x lineage; this brings ~248 commits of stack
+  fixes and features. All examples in the series pin the same stack commit.
+- `common/` updated to **v1.1.0**: the vendored helper now carries its own
+  version (`COMMON_VERSION`, printed at start-up) and its own changelog
+  (`common/CHANGELOG.md`), and `CASBACnetStackExampleConstants.h` is now the
+  series-wide superset (identical file in every example).
+
+### Fixed
+
+- `APP_VERSION` had drifted: `main.cpp` still said `1.0.1` while the repo was
+  tagged `v1.0.2`. From this release the two are kept in lock-step.
+
 ## [1.0.2] - 2026-06-16
 
 ### Fixed
