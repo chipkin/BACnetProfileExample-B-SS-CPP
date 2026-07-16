@@ -6,8 +6,12 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests, and
 is discoverable via **Who-Is / I-Am**.
 
+Part of the CAS BACnet Stack **BACnet profile example series** - one repository
+per BACnet device profile. This example claims **only** B-SS.
+
 > **Versions:** this document describes **example v1.1.0**, built and verified
-> against **CAS BACnet Stack 6.0.0.0** (the `6.x` branch) at **Protocol_Revision 24**, with `common/` helper **v1.1.0**.
+> against **CAS BACnet Stack 6.0.0.0** at **Protocol_Revision 24**, with the
+> vendored `common/` helper at **v1.2.0**. Running the example prints all three.
 
 ## What is a B-SS (BACnet Smart Sensor) profile?
 
@@ -48,7 +52,7 @@ application-specific. The result is conformant for **Protocol_Revision 24**.
 Device 389001  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
     │
     ├── Analog Input 1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius)
-    ├── Binary Input 1       "Emerald"     Present_Value  active  (0 = inactive / 1 = active)
+    ├── Binary Input 1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active)
     ├── Multi-State Input 1  "Hot Pink"    Present_Value  1       (state, 1..3)
     └── Network Port 1       "Vermilion"   the BACnet/IP port     (required on every device)
 ```
@@ -101,8 +105,10 @@ BACnet Stack license and access to that repository.
 Chipkin:** <https://store.chipkin.com/services/stacks/bacnet-stack> or
 sales@chipkin.com.
 
-You can still read all of this example's source on GitHub to evaluate the
-approach and the amount of code involved.
+You do not need a stack licence to *read* this example. Every file outside
+submodules/ is CC0 public domain, so once you have access to this repository you
+can review the approach and the amount of code involved before you buy. The licence
+is what lets you *build* it - that is the part the stack submodule gates.
 
 ## What's in this repository
 

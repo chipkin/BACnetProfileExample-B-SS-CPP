@@ -70,6 +70,14 @@ static const char* APP_VERSION = "1.1.0";
 // to 389001 and can be overridden on the command line with --deviceID.
 static uint32_t g_deviceInstance = 389001;
 
+// ---- Device identity: CHANGE ALL OF THIS BEFORE YOU SHIP --------------------
+// Everything in this block is read by clients and shown to the operator in every
+// discovery tool on the network. Left as-is, your product will appear on a real
+// site announcing itself as a Chipkin demo. None of it is cosmetic:
+// Object_Name must be unique across the BACnet internetwork, and Model_Name /
+// Vendor_Identifier are what a building operator uses to identify your device.
+// -----------------------------------------------------------------------------
+
 // Your BACnet Vendor Identifier. 389 = Chipkin Automation Systems; change this
 // to YOUR company's vendor ID before shipping a product. Vendor IDs are assigned
 // by ASHRAE - request one (free) at https://bacnet.org/assigned-vendor-ids/.
