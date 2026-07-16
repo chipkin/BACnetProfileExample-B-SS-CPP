@@ -9,6 +9,10 @@ is discoverable via **Who-Is / I-Am**.
 Part of the CAS BACnet Stack **BACnet profile example series** - one repository
 per BACnet device profile. This example claims **only** B-SS.
 
+**Start here** - this is the first example in the series and the reference the
+others are built from. Next: [B-SA (Smart Actuator)](https://github.com/chipkin/BACnetProfileExample-B-SA-CPP) adds writable,
+commandable outputs, then [B-ASC](https://github.com/chipkin/BACnetProfileExample-B-ASC-CPP) adds DeviceCommunicationControl.
+
 > **Versions:** this document describes **example v1.1.0**, built and verified
 > against **CAS BACnet Stack 6.0.0.0** at **Protocol_Revision 24**, with the
 > vendored `common/` helper at **v1.2.0**. Running the example prints all three.
