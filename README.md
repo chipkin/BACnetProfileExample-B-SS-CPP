@@ -46,7 +46,7 @@ reporting**, **scheduling**, and **trending**.
 the standard object model - a **Device** object, a **Network Port** object (every
 device needs one), and its sensor objects - and each object must expose all of
 its **required properties**. The CAS BACnet Stack generates most of those
-automatically (Object_Identifier, Object_Type, Status_Flags, Event_State,
+automatically (Object_Identifier, Object_Type, Status_Flags,
 Object_List, Protocol_*, ...); this example supplies the handful that are
 application-specific. The result is conformant for **Protocol_Revision 24**.
 
