@@ -279,13 +279,30 @@ string in `GetPropertyCharString`).
 **Add a second analog input.** Read this whole recipe before starting — the last
 step is the one that is easy to miss and the one BTL will fail you for.
 
-> **Why there are four edits, not three.** Most of the `GetProperty*` callbacks
-> match on **both** object type *and* instance (`objectInstance ==
-> ANALOG_INPUT_INSTANCE`). A new instance therefore falls through **every** such
-> check and the property read errors. `GetPropertyBool` is the exception: it
-> matches on type only, so `Out_Of_Service` works for a new instance for free.
-> That inconsistency is why a partly-added object *looks* fine — `Present_Value`
-> and `Out_Of_Service` answer, `Units` does not.
+> **Why there are four edits, not three — and why skipping one is SILENT.**
+> Most of the `GetProperty*` callbacks match on **both** object type *and*
+> instance (`objectInstance == ANALOG_INPUT_INSTANCE`), so a new instance falls
+> through every one of them. `GetPropertyBool` is the exception: it matches on
+> type only, so `Out_Of_Service` works for a new instance for free.
+>
+> Here is the part that matters, and that an earlier version of this document got
+> **backwards**: falling through a callback does **not** reliably produce an
+> error. The stack errors only for the few properties it refuses to invent —
+> `Present_Value`, `Number_Of_States`, `Relinquish_Default`, `Local_Date`,
+> `Local_Time`. For everything else it **silently substitutes a default**:
+>
+> | Property | If you forget to serve it | Loud? |
+> |---|---|:--:|
+> | `Present_Value` | Error (`value-not-initialized`) | yes |
+> | `Object_Name` | reads back as the string **`"undefined"`** | **no** |
+> | `Units` | reads back as **`no-units` (95)** | **no** |
+> | `Out_Of_Service` | served on type alone — works by accident | n/a |
+>
+> So a half-added object does not look broken; it looks **healthy**. Add two of
+> them and both report `Object_Name "undefined"` — duplicate object names inside
+> one device, which is a spec violation and a hard BTL failure that every scan
+> tool will render as a perfectly good object. **"It scanned OK" is exactly the
+> failure mode, not evidence against it.**
 
 ```cpp
 // 1) a new instance number (in section 1).
@@ -316,9 +333,39 @@ if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_IN
 ```
 
 Then re-run the Verify steps above **against Analog Input 2**, not just Analog
-Input 1 — read every required property (`Present_Value`, `Object_Name`, `Units`,
-`Status_Flags`, `Event_State`, `Out_Of_Service`), which is exactly what catches a
-missed step 4.
+Input 1 — read every required property and **diff it against Analog Input 1**.
+Any property that comes back `"undefined"`, `no-units`, or `0` where object 1
+returns something real is a step you missed. Because the failure is silent (see
+the table above), this diff is the only thing that catches it.
+
+### What each object type needs you to serve
+
+The application must serve every REQUIRED property the stack does not generate.
+It differs per type — this is the checklist, so you do not have to infer it:
+
+| Object type | You must serve | Plus |
+|---|---|---|
+| Analog Input | `Present_Value` (Real), `Object_Name`, `Units` | — |
+| Binary Input | `Present_Value` (Enumerated), `Object_Name` | `Polarity` |
+| Multi-State Input | `Present_Value` (Unsigned), `Object_Name` | `Number_Of_States` |
+
+### Who serves what: the application or the stack?
+
+The single most common question when reading this file is "who answers this
+property?" For Analog Input 1, the whole picture:
+
+| Property | Served by | How |
+|---|---|---|
+| `Object_Identifier` | **stack** | generated from the object you added |
+| `Object_Type` | **stack** | generated |
+| `Object_List` | **stack** | generated (Device object) |
+| `Property_List` | **stack** | generated |
+| `Status_Flags` | **stack** | generated |
+| `Event_State` | **stack**, sort of | no intrinsic alarming here, so nothing serves it — it reads `normal` only because `normal` is the enumeration's zero value and the stack substitutes a datatype default. Correct by coincidence, not design. |
+| `Out_Of_Service` | **you** | `GetPropertyBool` — matched on object **type only** |
+| `Present_Value` | **you** | `GetPropertyReal` |
+| `Object_Name` | **you** | `GetPropertyCharString` |
+| `Units` | **you** | `GetPropertyEnumerated` |
 
 Going beyond reading (writable points, outputs, COV, alarms) means implementing a
 richer profile — see B-SA and B-ASC.
