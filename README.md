@@ -269,22 +269,52 @@ The example is intentionally small so it's easy to change.
 `main.cpp` (e.g. the initial value of `g_analogInput1Value`, or the `"Bronze"`
 string in `GetPropertyCharString`).
 
-**Add a second analog input** - three small edits in `main.cpp`:
+**Add a second analog input.** Read this whole recipe before starting — the last
+step is the one that is easy to miss and the one BTL will fail you for.
+
+> **Why there are four edits, not three.** Most of the `GetProperty*` callbacks
+> match on **both** object type *and* instance (`objectInstance ==
+> ANALOG_INPUT_INSTANCE`). A new instance therefore falls through **every** such
+> check and the property read errors. `GetPropertyBool` is the exception: it
+> matches on type only, so `Out_Of_Service` works for a new instance for free.
+> That inconsistency is why a partly-added object *looks* fine — `Present_Value`
+> and `Out_Of_Service` answer, `Units` does not.
 
 ```cpp
-// 1) a new instance number (in section 1)
-static const uint32_t ANALOG_INPUT_2_INSTANCE = 2;   // "Silver"
+// 1) a new instance number (in section 1).
+//    Naming: a second object of a type is "<Colour> 2" - so Analog Input 2 is
+//    "Bronze 2", NOT a new colour. Each object TYPE owns one colour series-wide.
+static const uint32_t ANALOG_INPUT_2_INSTANCE = 2;   // "Bronze 2"
+static float g_analogInput2Value = 23.1f;            // its live value
 
-// 2) add the object (in main, next to the other BACnetStack_AddObject calls)
-BACnetStack_AddObject(DEVICE_INSTANCE, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_2_INSTANCE);
+// 2) add the object (in main, next to the other BACnetStack_AddObject calls).
+//    Check the return, like every other stack call in this file.
+if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_2_INSTANCE)) {
+    printf("Error: Failed to add Analog Input 2 (Bronze 2).\n");
+    return 1;
+}
 
-// 3) serve its value + name (in the matching callbacks)
-//    GetPropertyReal:        AI/2 + Present_Value -> *value = 23.1f;
-//    GetPropertyCharString:  AI/2 + Object_Name   -> "Silver"
+// 3) serve its Present_Value + Object_Name:
+//    GetPropertyReal:        AI/2 + Present_Value -> *value = g_analogInput2Value;
+//    GetPropertyCharString:  AI/2 + Object_Name   -> "Bronze 2"
+
+// 4) DO NOT SKIP: serve its Units, in GetPropertyEnumerated.
+//    Units is a REQUIRED property of an Analog Input. The existing check reads
+//    `objectInstance == ANALOG_INPUT_INSTANCE`, which is instance 1 - so without
+//    this, reading Analog Input 2's Units returns an ERROR and the object is
+//    NON-CONFORMANT. It will still appear in the Object_List and its
+//    Present_Value will read back perfectly, so the device looks healthy right
+//    up until BTL certification.
+//    GetPropertyEnumerated:  AI/2 + Units -> *value = ENGINEERING_UNITS_DEGREES_CELSIUS;
 ```
 
-Rebuild, and the new sensor is readable. Going beyond reading (writable points,
-outputs, COV, alarms) means implementing a richer profile.
+Then re-run the Verify steps above **against Analog Input 2**, not just Analog
+Input 1 — read every required property (`Present_Value`, `Object_Name`, `Units`,
+`Status_Flags`, `Event_State`, `Out_Of_Service`), which is exactly what catches a
+missed step 4.
+
+Going beyond reading (writable points, outputs, COV, alarms) means implementing a
+richer profile — see B-SA and B-ASC.
 
 ## References
 

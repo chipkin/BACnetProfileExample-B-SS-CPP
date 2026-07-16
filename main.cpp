@@ -116,8 +116,21 @@ static float g_analogInput1Value = 21.5f;
 //
 // The stack calls these when a client reads a property. For each data type the
 // stack uses a separate callback. We return true (and fill *value) when we
-// recognise the (object, property) pair, and false otherwise so the stack
-// answers with the proper BACnet error.
+// recognise the (object, property) pair, and false otherwise - false means "not
+// mine", and the stack then answers the client with the proper BACnet error. It
+// does NOT mean "the read failed"; you are simply declining to answer.
+//
+// ADDING AN OBJECT? READ THIS FIRST.
+// These callbacks are not uniformly strict, and the difference bites:
+//   - GetPropertyReal / GetPropertyEnumerated / GetPropertyUnsignedInteger match
+//     on object type AND INSTANCE (e.g. objectInstance == ANALOG_INPUT_INSTANCE).
+//     A new instance falls through every one of those checks.
+//   - GetPropertyBool matches on TYPE ONLY, so a new instance gets Out_Of_Service
+//     for free.
+// So a half-added object answers Present_Value and Out_Of_Service but errors on
+// Units - i.e. it looks healthy and is non-conformant. When you add an instance,
+// walk EVERY callback below, and then read back every required property of the
+// new object. The README's "Add a second analog input" recipe lists the edits.
 // -----------------------------------------------------------------------------
 
 // REAL (floating point) - the Analog Input's Present_Value.
