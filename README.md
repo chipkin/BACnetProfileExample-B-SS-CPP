@@ -6,8 +6,16 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests, and
 is discoverable via **Who-Is / I-Am**.
 
+Part of the CAS BACnet Stack **BACnet profile example series** - one repository
+per BACnet device profile. This example claims **only** B-SS.
+
+**Start here** - this is the first example in the series and the reference the
+others are built from. Next: [B-SA (Smart Actuator)](https://github.com/chipkin/BACnetProfileExample-B-SA-CPP) adds writable,
+commandable outputs, then [B-ASC](https://github.com/chipkin/BACnetProfileExample-B-ASC-CPP) adds DeviceCommunicationControl.
+
 > **Versions:** this document describes **example v1.1.0**, built and verified
-> against **CAS BACnet Stack 6.0.0.0** (the `6.x` branch) at **Protocol_Revision 24**, with `common/` helper **v1.1.0**.
+> against **CAS BACnet Stack 6.0.0.0** at **Protocol_Revision 24**, with the
+> vendored `common/` helper at **v1.3.0**. Running the example prints all three.
 
 ## What is a B-SS (BACnet Smart Sensor) profile?
 
@@ -38,7 +46,7 @@ reporting**, **scheduling**, and **trending**.
 the standard object model - a **Device** object, a **Network Port** object (every
 device needs one), and its sensor objects - and each object must expose all of
 its **required properties**. The CAS BACnet Stack generates most of those
-automatically (Object_Identifier, Object_Type, Status_Flags, Event_State,
+automatically (Object_Identifier, Object_Type, Status_Flags,
 Object_List, Protocol_*, ...); this example supplies the handful that are
 application-specific. The result is conformant for **Protocol_Revision 24**.
 
@@ -48,7 +56,7 @@ application-specific. The result is conformant for **Protocol_Revision 24**.
 Device 389001  "Rainbow"   (Vendor 389 - Chipkin Automation Systems)
     │
     ├── Analog Input 1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius)
-    ├── Binary Input 1       "Emerald"     Present_Value  active  (0 = inactive / 1 = active)
+    ├── Binary Input 1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active)
     ├── Multi-State Input 1  "Hot Pink"    Present_Value  1       (state, 1..3)
     └── Network Port 1       "Vermilion"   the BACnet/IP port     (required on every device)
 ```
@@ -61,7 +69,9 @@ Object names follow this series' colour-naming convention (Device is always
 The example implements exactly the capabilities below - and nothing more, which
 is the point of a profile example. These capabilities satisfy the **B-SS (BACnet
 Smart Sensor)** profile; because they are also the baseline required by
-**B-GENERAL**, this example satisfies the **B-GENERAL** profile as well.
+**B-GENERAL**, a conformant B-SS device necessarily satisfies **B-GENERAL** too.
+That is subsumption, not a second claim: this repository still claims exactly one
+profile.
 
 ### BIBBs (BACnet Interoperability Building Blocks)
 
@@ -89,6 +99,33 @@ Smart Sensor)** profile; because they are also the baseline required by
 | Multi-State Input | 1 | Hot Pink |
 | Network Port | 1 | Vermilion |
 
+## Before you ship
+
+This example is a tutorial, and it identifies itself as one. Everything in this
+table is read by clients and shown to the operator in **every discovery tool on
+the network**. Left as-is, your product appears on a real site announcing itself
+as a Chipkin demo. None of it is cosmetic.
+
+| Constant (`main.cpp`) | Ships as | Change it to |
+|---|---|---|
+| `VENDOR_IDENTIFIER` | `389` (Chipkin) | **Your** company's vendor ID. Assigned by ASHRAE, free: <https://bacnet.org/assigned-vendor-ids/> |
+| `VENDOR_NAME` | `Chipkin Automation Systems` | Your company name — must match the vendor ID above. |
+| `DEVICE_NAME` | `"Rainbow"` | Your device's `Object_Name`. **Must be unique across the BACnet internetwork** — see the note below. |
+| `MODEL_NAME` | `CAS BACnet Stack Example - B-SS` | Your model designation. This is what a building operator reads to identify your device. |
+| `DEVICE_DESCRIPTION` | a description of *this example* | What your device actually is. |
+| `FIRMWARE_REVISION` / `APPLICATION_SOFTWARE_VERSION` | `1.0.0` | Your real versions — wire them to your build. |
+| Device instance | `389001` (`--deviceID` overrides) | Must be unique on the internetwork. BACnet requires this to be configurable; keep it so. |
+
+> **`Object_Name` uniqueness is the one that will bite you.** The device instance
+> is runtime-configurable via `--deviceID`, but `DEVICE_NAME` is a compile-time
+> constant. Ship two units and configure their instances correctly, and **both
+> still announce `Object_Name "Rainbow"`** — a spec violation, and exactly the
+> uniqueness problem the code comments warn about. In a real product,
+> `Object_Name` must be per-unit configurable too (serial number, DIP switches,
+> a config file, or a `--deviceName` argument).
+
+`main.cpp` marks this block with a `CHANGE ALL OF THIS BEFORE YOU SHIP` banner.
+
 ## Requires the CAS BACnet Stack (licensed product)
 
 This example **builds against the CAS BACnet Stack, which is a commercial Chipkin
@@ -101,8 +138,10 @@ BACnet Stack license and access to that repository.
 Chipkin:** <https://store.chipkin.com/services/stacks/bacnet-stack> or
 sales@chipkin.com.
 
-You can still read all of this example's source on GitHub to evaluate the
-approach and the amount of code involved.
+You do not need a stack licence to *read* this example. Every file outside
+submodules/ is CC0 public domain, so once you have access to this repository you
+can review the approach and the amount of code involved before you buy. The licence
+is what lets you *build* it - that is the part the stack submodule gates.
 
 ## What's in this repository
 
@@ -122,7 +161,7 @@ application (stack + example):
 
 | Platform | Binary | Size |
 |----------|--------|------|
-| Windows x64 (MSVC, Release) | `BACnetExampleBSS.exe` | ~2.6 MB |
+| Windows x64 (MSVC, Release) | `BACnetExampleBSS.exe` | ~2.9 MB |
 | Linux x64 (GCC, Release) | `BACnetExampleBSS` | ~6 MB unstripped (`strip` cuts it substantially) |
 
 These are whole-application sizes. The stack's flash/RAM footprint on a
@@ -169,7 +208,7 @@ cmake --build build --config Release
 ```
 
 > **First build takes a few minutes** - it compiles the entire CAS BACnet Stack
-> (~460 source files) once. Incremental rebuilds after that are fast.
+> (~600 source files) once. Incremental rebuilds after that are fast.
 
 If your CAS BACnet Stack lives somewhere other than the bundled submodule, point
 CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
@@ -189,7 +228,7 @@ Expected output:
 ```
 BACnet B-SS (Smart Sensor) Example - C++ v1.1.0
 CAS BACnet Stack version: 6.0.0.0
-Common helper (common/) version: 1.1.0
+Common helper (common/) version: 1.3.0
 FYI: Listening for BACnet/IP on UDP port 47808.
 FYI: Device 389001 ("Rainbow") ready. Vendor ID 389. Press 'h' for help.
 TX 21 bytes to 192.168.3.255:47808 (broadcast)
@@ -210,6 +249,8 @@ firewall. To use a different port, pass `--port` (see below).
 |--------|---------|---------|
 | `--port <n>` | `47808` | UDP port to listen on (BACnet/IP). |
 | `--deviceID <n>` | `389001` | The device's BACnet instance number (BACnet requires this to be configurable). |
+| `--help`, `-h` | - | Show usage and exit. |
+| `--version` | - | Print the example, stack, and `common/` helper versions, then exit. |
 
 ### Interactive commands
 
@@ -253,10 +294,11 @@ Use a BACnet client such as the
 
 | Symptom | Cause / fix |
 |---------|-------------|
+| On start-up the app prints a wall of red `Error:` lines but the device works | **Expected — this is not your bug.** Two benign sources, both from the stack's own debug logging: (1) the device receives its **own** broadcast I-Am and logs a decode cascade (*"Services is not supported service=[0]"* … *"Failed to process the incoming NPDU"*) — any BACnet/IP device that listens for broadcasts hears itself; (2) a one-time *"UUID has not been set. A UUID must be set for the BACnetSC device to start."* — the stack starts a BACnet/SC datalink these IP-only examples never configure. It appears once and does not spam. On a healthy start-up roughly half the output is these lines. |
 | CMake error: *"CAS BACnet Stack source not found"* | Submodules not initialized. Run `git submodule update --init --recursive` (or pass `-D CAS_STACK_DIR=...`). |
 | `CASBACnetStackDLL.h: No such file or directory` | Same - submodules not checked out. |
 | Windows: *"No CMAKE_CXX_COMPILER could be found"* | Install Visual Studio with the "Desktop development with C++" workload, then re-run from a fresh terminal. |
-| First build seems stuck for minutes | Normal - it's compiling ~460 stack files. Only the first build is slow. |
+| First build seems stuck for minutes | Normal - it's compiling ~600 stack files. Only the first build is slow. |
 | App prints *"Failed to bind UDP port 47808"* | Another BACnet program is already using 47808. Stop it, or run with `--port <n>`. |
 | Client sends Who-Is but sees no I-Am | Firewall is blocking UDP 47808, or the client and device are on different subnets (Who-Is is a broadcast). Allow the port; test on the same subnet first. |
 | Replies show an unexpected device instance or vendor | Another BACnet device is already running on this host/port (the socket uses `SO_REUSEADDR`, so several can share 47808). Stop the other device, or run this example on its own machine/IP. |
@@ -269,22 +311,103 @@ The example is intentionally small so it's easy to change.
 `main.cpp` (e.g. the initial value of `g_analogInput1Value`, or the `"Bronze"`
 string in `GetPropertyCharString`).
 
-**Add a second analog input** - three small edits in `main.cpp`:
+**Add a second analog input.** Read this whole recipe before starting — the last
+step is the one that is easy to miss and the one BTL will fail you for.
+
+> **Why there are four edits, not three — and why skipping one is SILENT.**
+> Most of the `GetProperty*` callbacks match on **both** object type *and*
+> instance (`objectInstance == ANALOG_INPUT_INSTANCE`), so a new instance falls
+> through every one of them. `GetPropertyBool` is the exception: it matches on
+> type only, so `Out_Of_Service` works for a new instance for free.
+>
+> Here is the part that matters, and that an earlier version of this document got
+> **backwards**: falling through a callback does **not** reliably produce an
+> error. The stack errors only for the few properties it refuses to invent —
+> `Present_Value`, `Number_Of_States`, `Relinquish_Default`, `Local_Date`,
+> `Local_Time`, and a Network Port's `APDU_Length`. For everything else it **silently substitutes a default**:
+>
+> | Property | If you forget to serve it | Loud? |
+> |---|---|:--:|
+> | `Present_Value` | Error (`value-not-initialized`) | yes |
+> | `Object_Name` | reads back as the string **`"undefined"`** | **no** |
+> | `Units` | reads back as **`no-units` (95)** | **no** |
+> | `Out_Of_Service` | served on type alone — works by accident | n/a |
+>
+> It is worse than "wrong value": the object's `Property_List` **still advertises
+> `Units` (117)**. So the object actively claims to have the property, and then
+> answers with a default. Nothing on the wire says you forgot anything.
+>
+> So a half-added object does not look broken; it looks **healthy**. Add two of
+> them and both report `Object_Name "undefined"` — duplicate object names inside
+> one device, which is a spec violation and a hard BTL failure that every scan
+> tool will render as a perfectly good object. **"It scanned OK" is exactly the
+> failure mode, not evidence against it.**
 
 ```cpp
-// 1) a new instance number (in section 1)
-static const uint32_t ANALOG_INPUT_2_INSTANCE = 2;   // "Silver"
+// 1) a new instance number (in section 1).
+//    Naming: a second object of a type is "<Colour> 2" - so Analog Input 2 is
+//    "Bronze 2", NOT a new colour. Each object TYPE owns one colour series-wide.
+static const uint32_t ANALOG_INPUT_2_INSTANCE = 2;   // "Bronze 2"
+static float g_analogInput2Value = 23.1f;            // its live value
 
-// 2) add the object (in main, next to the other BACnetStack_AddObject calls)
-BACnetStack_AddObject(DEVICE_INSTANCE, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_2_INSTANCE);
+// 2) add the object (in main, next to the other BACnetStack_AddObject calls).
+//    Check the return, like every other stack call in this file.
+if (!BACnetStack_AddObject(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT, ANALOG_INPUT_2_INSTANCE)) {
+    printf("Error: Failed to add Analog Input 2 (Bronze 2).\n");
+    return 1;
+}
 
-// 3) serve its value + name (in the matching callbacks)
-//    GetPropertyReal:        AI/2 + Present_Value -> *value = 23.1f;
-//    GetPropertyCharString:  AI/2 + Object_Name   -> "Silver"
+// 3) serve its Present_Value + Object_Name:
+//    GetPropertyReal:        AI/2 + Present_Value -> *value = g_analogInput2Value;
+//    GetPropertyCharString:  AI/2 + Object_Name   -> "Bronze 2"
+
+// 4) DO NOT SKIP: serve its Units, in GetPropertyEnumerated.
+//    Units is a REQUIRED property of an Analog Input. The existing check reads
+//    `objectInstance == ANALOG_INPUT_INSTANCE`, which is instance 1 - so without
+//    this, reading Analog Input 2's Units returns an ERROR and the object is
+//    NON-CONFORMANT. It will still appear in the Object_List and its
+//    Present_Value will read back perfectly, so the device looks healthy right
+//    up until BTL certification.
+//    GetPropertyEnumerated:  AI/2 + Units -> *value = ENGINEERING_UNITS_DEGREES_CELSIUS;
 ```
 
-Rebuild, and the new sensor is readable. Going beyond reading (writable points,
-outputs, COV, alarms) means implementing a richer profile.
+Then re-run the Verify steps above **against Analog Input 2**, not just Analog
+Input 1 — read every required property and **diff it against Analog Input 1**.
+Any property that comes back `"undefined"`, `no-units`, or `0` where object 1
+returns something real is a step you missed. Because the failure is silent (see
+the table above), this diff is the only thing that catches it.
+
+### What each object type needs you to serve
+
+The application must serve every REQUIRED property the stack does not generate.
+It differs per type — this is the checklist, so you do not have to infer it:
+
+| Object type | You must serve | Plus |
+|---|---|---|
+| Analog Input | `Present_Value` (Real), `Object_Name`, `Units` | — |
+| Binary Input | `Present_Value` (Enumerated), `Object_Name` | `Polarity` |
+| Multi-State Input | `Present_Value` (Unsigned), `Object_Name` | `Number_Of_States` |
+
+### Who serves what: the application or the stack?
+
+The single most common question when reading this file is "who answers this
+property?" For Analog Input 1, the whole picture:
+
+| Property | Served by | How |
+|---|---|---|
+| `Object_Identifier` | **stack** | generated from the object you added |
+| `Object_Type` | **stack** | generated |
+| `Object_List` | **stack** | generated (Device object) |
+| `Property_List` | **stack** | generated |
+| `Status_Flags` | **stack** | generated |
+| `Event_State` | **stack**, sort of | no intrinsic alarming here, so nothing serves it — it reads `normal` only because `normal` is the enumeration's zero value and the stack substitutes a datatype default. Correct by coincidence, not design. |
+| `Out_Of_Service` | **you** | `GetPropertyBool` — matched on object **type only** |
+| `Present_Value` | **you** | `GetPropertyReal` |
+| `Object_Name` | **you** | `GetPropertyCharString` |
+| `Units` | **you** | `GetPropertyEnumerated` |
+
+Going beyond reading (writable points, outputs, COV, alarms) means implementing a
+richer profile — see B-SA and B-ASC.
 
 ## References
 
