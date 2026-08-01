@@ -351,8 +351,8 @@ step is the one that is easy to miss and the one BTL will fail you for.
 > through every one of them. `GetPropertyBool` is the exception: it matches on
 > type only, so `Out_Of_Service` works for a new instance for free.
 >
-> Here is the part that matters, and that an earlier version of this document got
-> **backwards**: falling through a callback does **not** reliably produce an
+> Here is the part that matters, and it is the opposite of what most people
+> assume: falling through a callback does **not** reliably produce an
 > error. The stack errors only for the few properties it refuses to invent —
 > `Present_Value`, `Number_Of_States`, `Relinquish_Default`, `Local_Date`,
 > `Local_Time`, and a Network Port's `APDU_Length`. For everything else it **silently substitutes a default**:
