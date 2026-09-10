@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - unreleased
+
+### Changed — updated to the current CAS BACnet Stack interface
+
+Stack pinned to `issues/runbook` @ `40e6ff26` (reports itself as 6.0.21.0), up
+from `6.x-TestTool` @ `756371c1`. Four interface changes reach this example; the
+full list, with before/after signatures, is on cas-bacnet-stack issue #1641.
+
+- **Every `GetProperty*` callback gained a trailing `uint32_t* errorCode`**
+  (stack issue #974). The stack presets it to `success` and reads it only on a
+  `false` return, so a declining callback can now name the BACnet error the
+  client receives. `main.cpp` uses it in exactly one place — `State_Text` with an
+  out-of-range array index now answers `Error(property, invalid-array-index)`
+  instead of an empty string — and deliberately leaves it alone on every
+  catch-all `return false`, because the stack's decline-and-fabricate fallback is
+  what answers required properties this application does not serve (the Device's
+  `Max_APDU_Length_Accepted`, `APDU_Timeout` and `Number_Of_APDU_Retries`). The
+  commentary above the callbacks explains the trade-off.
+- **`BACnetStack_AddNetworkPortObjectWithNetworkNumber()` is gone**, folded into
+  `BACnetStack_AddNetworkPortObject()`, which now always takes the network number
+  and its quality. Same arguments, one function.
+- **Links are identified by Network Port object instance, not network type**
+  (stack issues #822/#556) — the transport callbacks and `SendIAm` all changed.
+  Handled in `common/`; `main.cpp` calls the new
+  `CASExampleHelper::SetNetworkPortInstance()`.
+- **`GetSystemTime` returns `CASBACnetTime` (`int64_t`) instead of `time_t`.**
+  Handled in `common/`.
+
+`common/` goes to **2.0.0** (breaking; see `common/CHANGELOG.md`) and must be
+re-copied into every example in the series.
+
+### Verified
+
+Built on Windows/MSVC and exercised against a BACnet client: Who-Is → I-Am
+(device 389001, APDU 1476, vendor 389); ReadProperty of every required property
+of all five objects returns the expected value, `Protocol_Revision` is 24 and
+`Object_List` lists all five; `State_Text[1..3]` reads `On`/`Off`/`Auto` and
+`State_Text[4]` errors with `invalid-array-index`; WriteProperty and the other
+non-B-SS services are answered `Reject(unrecognized-service)`.
+
 ## [1.1.0] - unreleased
 
 > Not tagged yet: the newest tag here is `v1.0.2`. `release.yml` publishes binaries on a `v*.*.*`
