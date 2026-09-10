@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed — updated to the current CAS BACnet Stack interface
 
-Stack pinned to `issues/runbook` @ `40e6ff26` (reports itself as 6.0.21.0), up
+Stack pinned to `issues/runbook` @ `670963ab` (reports itself as 6.0.21.0), up
 from `6.x-TestTool` @ `756371c1`. Four interface changes reach this example; the
 full list, with before/after signatures, is on cas-bacnet-stack issue #1641.
 
@@ -35,6 +35,15 @@ full list, with before/after signatures, is on cas-bacnet-stack issue #1641.
 
 `common/` goes to **2.0.0** (breaking; see `common/CHANGELOG.md`) and must be
 re-copied into every example in the series.
+
+### Fixed (upstream)
+
+- Building this example against the stack surfaced a compile break in
+  `BACnetInterface.cpp`: the per-port rename left eight `NOREF(networkType)`
+  calls naming a parameter that no longer exists, in code that only compiles
+  when the matching `STACK_OPTION_*` is off. `SendWriteGroup`'s is the one this
+  build compiles, so the example could not be built at all. Fixed upstream in
+  cas-bacnet-stack PR #1759, which is included in the pin above.
 
 ### Verified
 
