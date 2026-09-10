@@ -359,10 +359,24 @@ step is the one that is easy to miss and the one BTL will fail you for.
 >
 > | Property | If you forget to serve it | Loud? |
 > |---|---|:--:|
-> | `Present_Value` | Error (`value-not-initialized`) | yes |
+> | `Present_Value` | Error (`read-access-denied`) | yes |
 > | `Object_Name` | reads back as the string **`"undefined"`** | **no** |
 > | `Units` | reads back as **`no-units` (95)** | **no** |
 > | `Out_Of_Service` | served on type alone — works by accident | n/a |
+>
+> **Doesn't the `errorCode` out-parameter fix this?** Only if you use it, and
+> only where it is right to. Each `GetProperty*` callback ends with a
+> `uint32_t* errorCode` that the stack presets to `success` and reads only when
+> you return `false`, so you *can* turn any decline into a chosen BACnet error.
+> But ending every callback with `*errorCode = unknown-property` breaks the
+> device: the stack's decline-and-fabricate path is what answers required
+> properties an application is not expected to serve — the Device's
+> `Max_APDU_Length_Accepted`, `APDU_Timeout` and `Number_Of_APDU_Retries` among
+> them. Name an error on the catch-all and those start failing instead of
+> answering. Set `errorCode` only where *this device* knows the read is wrong;
+> `main.cpp` does it in exactly one place, `State_Text` with an out-of-range
+> array index. The table above is still how the fall-through behaves, and the
+> diff below is still what catches a missed step.
 >
 > It is worse than "wrong value": the object's `Property_List` **still advertises
 > `Units` (117)**. So the object actively claims to have the property, and then
