@@ -12,6 +12,21 @@ entry here, and must then be re-copied into **every** example in the series.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the folder adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-09-15
+
+### Added
+
+- `KeyCommand::RouterAnnounce` (key `r` / `R`), wired in `PollKey()` on both the
+  Windows (`_getch`) and POSIX (raw-terminal `read`) code paths. Non-breaking,
+  purely additive: existing `switch (CASExampleHelper::PollKey())` call sites
+  with a `default:` case (every current example) build unchanged.
+- Claimed in the series-wide `docs/menu-keys.md`: manually (re-)send
+  I-Am-Router-To-Network now, instead of waiting for the one sent at start-up,
+  so routing can be demonstrated on demand. First consumer:
+  `BACnetProfileExample-B-RTR-CPP`'s F-ROUTER demo (Wave 2); any later
+  routing/gateway example (e.g. B-GW) reuses this same key rather than
+  claiming a new one.
+
 ## [2.3.0] - 2026-09-15
 
 ### Added
