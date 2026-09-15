@@ -501,9 +501,6 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 ## The BACnet profile example series
 
 <!-- PROFILE-TABLE:BEGIN (generated from cas-bacnet-stack-examples/docs/profile-table.md - do not edit here) -->
-...
-<!-- PROFILE-TABLE:END -->
-<!-- PROFILE-TABLE:BEGIN (generated from cas-bacnet-stack-examples/docs/profile-table.md - do not edit here) -->
 The CAS BACnet Stack supports every standardized device profile in ASHRAE 135-2024 Annex L. One example repository per profile shows how. ✅ = the required BIBB (service) is supported by the CAS BACnet Stack; the **Example** column is the state of that profile's tutorial repository.
 
 ### Controllers (Annex L.4)
@@ -598,7 +595,10 @@ run (`metrics-windows.json` / `metrics-linux.json`), both built with
 <!-- METRICS -->
 | Platform | Binary | Size | SHA-256 (prefix) | Start-up to `ready` | Stack commit | Link mode | Compiler |
 |---|---|---|---|---|---|---|---|
-| - | - | - | - | - | - | - | not yet released |
+| Windows x64 (windows-2022) | `BACnetExampleBSS.exe` | 3,245,056 bytes (~3.1 MiB) | `69d8f3dee7a53242` | 73 ms | `abd4cee1` | STATIC | Visual Studio 17 2022 |
+| Linux x64 (ubuntu-latest) | `BACnetExampleBSS` | 38,888 bytes (~38 KiB) | `dc4a5f1e362fee5d` | 108 ms | `abd4cee1` | STATIC | `/usr/bin/c++` |
+
+From release [v1.2.0](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/releases/tag/v1.2.0) (`metrics-windows.json` / `metrics-linux.json`).
 
 ## References
 
