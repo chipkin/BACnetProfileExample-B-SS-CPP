@@ -40,7 +40,7 @@ namespace CASExampleHelper {
 // version). Bump it whenever anything in common/ changes, and record the
 // change in common/CHANGELOG.md - every example in the series must then be
 // re-synced to the same common/ version.
-static const char* COMMON_VERSION = "2.0.0";
+static const char* COMMON_VERSION = "2.1.0";
 
 // Print the example's name + version, the linked CAS BACnet Stack version,
 // and the common/ helper version.
@@ -165,11 +165,13 @@ bool RestartDue(RestartKind* outKind);
 
 // --- Keyboard input (common to every example) ------------------------------
 enum class KeyCommand {
-    None,       // nothing pressed
-    Help,       // 'h' - show version + commands
-    Quit,       // 'q' - exit
-    ArrowUp,    // up arrow
-    ArrowDown   // down arrow
+    None,        // nothing pressed
+    Help,        // 'h' - show version + commands
+    Quit,        // 'q' - exit
+    ArrowUp,     // up arrow
+    ArrowDown,   // down arrow
+    DemoAdvance  // 's' - advance a demo (e.g. a Schedule) to its next step now,
+                 //       bypassing whatever wall-clock wait it would otherwise need
 };
 
 // Non-blocking: returns a pending key command, or None if nothing was pressed.
