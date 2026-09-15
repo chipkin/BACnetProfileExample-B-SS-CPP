@@ -12,6 +12,17 @@ entry here, and must then be re-copied into **every** example in the series.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the folder adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-09-15
+
+### Added
+
+- `PROPERTY_IDENTIFIER_ROUTING_TABLE = 428` in `CASBACnetStackExampleConstants.h`
+  (Network Port's `Routing_Table`, optional - `BACnetStack_SetPropertyEnabled`
+  first). Matches `BACnetPropertyIdentifier.h`'s `routingTable = 428`. First
+  consumer: `BACnetProfileExample-B-RTR-CPP` (F-ROUTER, Wave 2), which enables
+  it on both its Network Port objects so a client can read back the routing
+  table it configures with `AddRouterPort`/`AddRouterRoute`.
+
 ## [2.4.0] - 2026-09-15
 
 ### Added
