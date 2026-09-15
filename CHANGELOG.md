@@ -7,11 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0] - unreleased
 
+### Changed — STATIC link, generated README blocks
+
+- **Stack re-pinned to `6.x` @ `abd4cee1` (reports itself as 6.0.21), tracking the
+  `6.x` branch** (`.gitmodules` `branch = 6.x`), up from the squashed
+  `issues/runbook` @ `670963ab` this example built against briefly. Same interface
+  as `670963ab` (`abd4cee1` is the head of `6.x` after that squash) - no `main.cpp`
+  change beyond the pin.
+- **Links the CAS BACnet Stack as a prebuilt STATIC library**
+  (`CAS_BACNET_STACK_LINK=STATIC`, built by `tools/build-stack-static.sh` from the
+  stack's own project files) instead of compiling the stack from `source/` into
+  this project. `CMakeLists.txt`, the README "Link mode" section and
+  `AGENTS.md` now describe STATIC only; the adapter's SOURCE mode gets one
+  line noting it exists. No DLL mode is documented or shipped.
+- **`.github/workflows/release.yml` rewritten**: builds the STATIC library (cached
+  on the submodule SHA), asserts `CAS_BACNET_STACK_LINK=STATIC` from
+  `CMakeCache.txt`, and publishes `metrics-windows.json` / `metrics-linux.json`
+  (binary size, SHA-256 prefix, start-up time to `ready`, stack commit, link
+  mode, compiler) as release assets alongside the binaries.
+- **README gained three generated/filled sections**: `## Objects and properties`
+  (from `docs/objects.json` via `tools/gen-objects-properties.py`), `## The
+  BACnet profile example series` (the series profile table, via
+  `tools/sync-profile-table.sh`), and `## Footprint` (filled from
+  `metrics-*.json` at release; currently the placeholder row).
+- Fixed README staleness: the version call-out, expected-output block, and
+  "What's in this repository" description had drifted to v1.1.0 / stack 6.0.0.0
+  / common 1.5.1 and "no prebuilt library" while the code and `common/` had
+  already moved to v1.2.0 / common 2.0.0; all now agree with what the binary
+  prints.
+
 ### Changed — updated to the current CAS BACnet Stack interface
 
-Stack pinned to `issues/runbook` @ `670963ab` (reports itself as 6.0.21.0), up
-from `6.x-TestTool` @ `756371c1`. Four interface changes reach this example; the
-full list, with before/after signatures, is on cas-bacnet-stack issue #1641.
+Four interface changes reach this example versus the prior `6.x-TestTool` pin
+`756371c1`; the full list, with before/after signatures, is on cas-bacnet-stack
+issue #1641.
 
 - **Every `GetProperty*` callback gained a trailing `uint32_t* errorCode`**
   (stack issue #974). The stack presets it to `success` and reads it only on a
