@@ -62,17 +62,18 @@ jobs:
           path: submodules/cas-bacnet-stack/bin
           key: cas-stack-static-${{ runner.os }}-${{ steps.stack.outputs.sha }}
 
-      - name: Add msbuild to PATH (Windows)
-        if: runner.os == 'Windows' && steps.libcache.outputs.cache-hit != 'true'
-        uses: microsoft/setup-msbuild@v2
-
       - name: Build the CAS BACnet Stack static library (ReleaseLib, customer surface only)
         if: steps.libcache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -e
           if [ "$RUNNER_OS" = "Windows" ]; then
-            msbuild submodules/cas-bacnet-stack/projects/msvs/CASBACnetStack/CASBACnetStack.vcxproj -p:Configuration=ReleaseLib -p:Platform=x64 -m -v:minimal
+            # microsoft/setup-msbuild's PATH update does not reach this Git-Bash step
+            # (msbuild: command not found even after that step ran), so resolve it
+            # directly the same way tools/build-stack-static.sh does locally.
+            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
+            MSBUILD=$("$vswhere" -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | head -1)
+            "$MSBUILD" submodules/cas-bacnet-stack/projects/msvs/CASBACnetStack/CASBACnetStack.vcxproj -p:Configuration=ReleaseLib -p:Platform=x64 -m -v:minimal
           else
             make -C submodules/cas-bacnet-stack/projects/linux/Release/x64 -j"$(nproc)" all
             make -C submodules/cas-bacnet-stack/projects/linux/Release/x64 install
