@@ -112,11 +112,13 @@ jobs:
           if kill -0 "$PID" 2>/dev/null; then kill "$PID" 2>/dev/null || true; else echo "FAIL: device exited early"; cat smoke.log; exit 1; fi
           [ -n "$ready_ms" ] || { echo "FAIL: no 'ready' line"; cat smoke.log; exit 1; }
           cat smoke.log
+          set -x
           bytes=$(stat -c %s "${{ matrix.exe }}" 2>/dev/null || wc -c < "${{ matrix.exe }}")
           sha=$(sha256sum "${{ matrix.exe }}" | cut -c1-16)
           stackver=$(grep -oE 'CAS BACnet Stack version: [0-9.]+' smoke.log | head -1 | grep -oE '[0-9.]+')
           appver=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' smoke.log | head -1)
           compiler=$(grep -E '^CMAKE_CXX_COMPILER_VERSION|^CMAKE_CXX_COMPILER:' build/CMakeCache.txt | head -2 | tr '\n' ' ')
+          set +x
           cat > "${{ matrix.metrics }}" <<EOF
           {
             "example": "BACnetExampleBSS",
