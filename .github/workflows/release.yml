@@ -73,7 +73,11 @@ jobs:
             # directly the same way tools/build-stack-static.sh does locally.
             vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
             MSBUILD=$("$vswhere" -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | head -1)
-            "$MSBUILD" submodules/cas-bacnet-stack/projects/msvs/CASBACnetStack/CASBACnetStack.vcxproj -p:Configuration=ReleaseLib -p:Platform=x64 -m -v:minimal
+            # The vcxproj names PlatformToolset=v145; windows-2022 only carries the VS 2022
+            # v143 build tools, so force v143 (MSB8020 otherwise: "build tools for v145 ...
+            # cannot be found"). CMake's own "Visual Studio 17 2022" generator resolves to
+            # the same v143 toolset on this runner, so the two stay compiler-matched.
+            "$MSBUILD" submodules/cas-bacnet-stack/projects/msvs/CASBACnetStack/CASBACnetStack.vcxproj -p:Configuration=ReleaseLib -p:Platform=x64 -p:PlatformToolset=v143 -m -v:minimal
           else
             make -C submodules/cas-bacnet-stack/projects/linux/Release/x64 -j"$(nproc)" all
             make -C submodules/cas-bacnet-stack/projects/linux/Release/x64 install
