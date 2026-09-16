@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed — documentation restructure, single-command build
+
+- **README.md cut down to what this example is.** It now covers only the B-SS
+  profile, the device this example creates, the BIBBs/services/objects it
+  supports, how to build and run it, and how to verify it. It links to the
+  releases page for prebuilt binaries near the top. Removed: the general
+  explanation of what a device profile is, the "start here / part of the series"
+  framing, the "Before you ship" table, the "Get the code" and "Link mode"
+  sections, and the CC0 dedication paragraph.
+- **New [TUTORIAL.md](TUTORIAL.md)** holds the long-form material the README used
+  to carry: extending the example (including the silent-failure warning for
+  adding a second object), what each object type needs the application to serve,
+  who serves what, how to review a change against the conformance statement, and
+  troubleshooting.
+- **New [docs/PICS.md](docs/PICS.md)**, a Protocol Implementation Conformance
+  Statement in the Annex A shape (product description, profile claimed, BIBBs,
+  services, segmentation, object types, data link layer, address binding,
+  networking, character sets), with the generated objects-and-properties tables
+  as its final section. The README's `## Objects and properties` section is gone;
+  it links here instead.
+- **The Device object is now in `docs/objects.json`** and therefore in the
+  generated tables, which previously covered only the four non-Device objects.
+- **Build is `cmake -B build -S .` and nothing else, on every platform.** The
+  documented build no longer calls `tools/build-stack-static.sh`, which lives in
+  the example-series repository and is therefore not available to a customer who
+  downloads this repository on its own. The example builds in the adapter's
+  default SOURCE mode: the stack's sources are compiled into the executable, so
+  there is no library or DLL to build first. `CMakeLists.txt`, `AGENTS.md` and
+  the release workflow were updated to match, and the workflow now asserts
+  `CAS_BACNET_STACK_LINK=SOURCE` rather than `STATIC`.
+- **The "Before you ship" guidance moved into `main.cpp`**, next to the constants
+  it applies to, including the warning that `Object_Name` is a compile-time
+  constant and must be made per-unit configurable in a real product.
+- **The series profile table is now a per-language link table** (one row per
+  profile, one column per language) grouped by profile family, instead of a table
+  of required BIBBs.
+
+### Fixed
+
+- `tools/gen-objects-properties.py` dropped the required `Property_List` row from
+  every generated table: the filter that skips the reference table's `| Property |`
+  header row also matched the `| Property_List |` data row.
+
 ## [1.2.0] - 2026-09-15
 
 ### Changed — STATIC link, generated README blocks
