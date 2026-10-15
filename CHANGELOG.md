@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - unreleased
+
+### Fixed
+
+- **Network Port 1 properties a client could not read** (#20, #21, #22). Chipkin
+  BACnet Explorer 4.23.2.0's discovery reads every property in each object's
+  `Property_List`; three on Network Port 1 failed: `IP_DNS_Server` (406) with
+  Abort `other`, `FD_BBMD_Address` (418) with Error `property` /
+  `value-not-initialized`, `FD_Subscription_Lifetime` (419) with Error `object` /
+  `read-access-denied`. The stack lists them by default; the fixes are in the
+  stack (cas-bacnet-stack #2340 / PR #3436, #3387 / PR #3413, #2452), so the
+  Stack Pin moves from `6.x` @ `abd4cee1` (6.0.21) to `6.x` @ `64b2cfac5`
+  (6.0.23). No `main.cpp` change was needed. All three now read as values
+  (`IP_DNS_Server` 0.0.0.0, `FD_BBMD_Address` a Null host with port 0,
+  `FD_Subscription_Lifetime` 0).
+
+### Added
+
+- **Wire Tests** (`tests/`, README "Wire Tests"): `tests/discovery_test.py` does
+  what a client's discovery does - Who-Is, the Device's `Object_List`, then every
+  object's `Property_List` and a ReadProperty of every listed property - and fails
+  on any Error, Reject, Abort or silence, naming 406/418/419 on Network Port 1
+  separately. `tests/run_wire_tests.py` runs it in one command; CI runs it on
+  Linux after the smoke test. Verified to fail at the old pin on exactly those
+  three properties (7/11) and pass at the new one (11/11), on Windows and Linux.
+- `wiretest/` 0.5.0, the series' shared Wiretest Harness, vendored verbatim.
+
+### Changed
+
+- **Protocol_Revision 24 -> 30** (the stack's default at the new pin).
+- **Segmentation is now supported** (`segmented-both`, `Max_Segments_Accepted`
+  16, `APDU_Segment_Timeout` 5000 ms): the stack's customer build compiles
+  segmentation in from this pin (stack #2992). `docs/PICS.md` section 5 updated.
+- Network Port 1's `Property_List` also lists `Command` (417) and
+  `Command_Validation_Result` (510) at this pin, from the stack.
+- README, AGENTS.md and PICS version lines: stack 6.0.23, `common/` 3.3.0,
+  Protocol_Revision 30. APP_VERSION 1.2.2 -> 1.2.3.
+
 ## [1.2.2] - unreleased
 
 ### Changed

@@ -14,9 +14,9 @@ is discoverable via **Who-Is / I-Am**.
 - **[docs/PICS.md](docs/PICS.md)** - the Protocol Implementation Conformance
   Statement: every object, every property, and who answers it.
 
-> **Versions:** this document describes **example v1.2.0**, built and verified
-> against **CAS BACnet Stack 6.0.21** (`6.x` @ `abd4cee1`), at
-> **Protocol_Revision 24**, with the vendored `common/` helper at **v2.5.0**.
+> **Versions:** this document describes **example v1.2.3**, built and verified
+> against **CAS BACnet Stack 6.0.23** (`6.x` @ `64b2cfac5`), at
+> **Protocol_Revision 30**, with the vendored `common/` helper at **v3.3.0**.
 > Running the example prints all three - if what it prints disagrees with this
 > line, trust the program and check `CHANGELOG.md`.
 
@@ -39,7 +39,7 @@ device needs one), and its sensor objects - and each object must expose all of
 its **required properties**. The CAS BACnet Stack generates most of those
 automatically (Object_Identifier, Object_Type, Status_Flags, Object_List,
 Protocol_*, ...); this example supplies the handful that are
-application-specific. The result is conformant for **Protocol_Revision 24**.
+application-specific. The result is conformant for **Protocol_Revision 30**.
 [docs/PICS.md](docs/PICS.md) lists every property and who answers it.
 
 ## The device this example creates
@@ -116,6 +116,8 @@ This is a **self-contained** project. It ships:
 - `common/` - the shared helper (UDP, callbacks, CLI, keyboard) vendored in.
 - `CMakeLists.txt` - the build, the same on Windows, Linux, and macOS.
 - `docs/PICS.md` - the conformance statement.
+- `tests/` - the Wire Tests (see [Wire Tests](#wire-tests)), and `wiretest/`, the
+  series' shared Python harness they are written against (vendored, like `common/`).
 - `submodules/cas-bacnet-stack/` - the **CAS BACnet Stack as a git submodule**
   (private; requires a license - see above). Its sources are compiled into the
   executable, so there is no library or DLL to build, ship, or install.
@@ -173,9 +175,9 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SS (Smart Sensor) Example - C++ v1.2.0
-CAS BACnet Stack version: 6.0.21.0
-Common helper (common/) version: 2.5.0
+BACnet B-SS (Smart Sensor) Example - C++ v1.2.3
+CAS BACnet Stack version: 6.0.23.0
+Common helper (common/) version: 3.3.0
 FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).
 TX 21 bytes to 192.168.3.255:47808 (broadcast) (Network Port 1)
 FYI: Device 389001 ("Chipkin Example B-SS") ready. Vendor ID 389. Press 'h' for help.
@@ -231,7 +233,7 @@ Use a BACnet client such as the
    BACnet/IP addressing - `IP_Address`, `IP_Subnet_Mask`, `BACnet_IP_UDP_Port`,
    and a `MAC_Address` the stack builds from them.
 3. **Read the Device** - ReadProperty `389001` -> `Object_Name` returns
-   `"Chipkin Example B-SS"`; `Protocol_Revision` returns `24`; `Description` returns the
+   `"Chipkin Example B-SS"`; `Protocol_Revision` returns `30`; `Description` returns the
    profile description string.
 4. **Read a sensor** - ReadProperty Analog Input `1` -> `Present_Value` returns
    `21.5`; `Units` returns `degrees-Celsius`; `Out_Of_Service` returns `false`;
@@ -243,6 +245,22 @@ Use a BACnet client such as the
 
 For a property-by-property review against the conformance statement, see
 [TUTORIAL.md](TUTORIAL.md).
+
+## Wire Tests
+
+The checks above, automated: a Python BACnet client drives the running example
+over BACnet/IP from outside it, the way a client discovers a device - Who-Is, the
+Device's `Object_List`, then for every object its `Property_List` and a
+ReadProperty of every property it lists. Every read must come back as a value; an
+Error, Reject or Abort fails the run. Python 3 standard library only:
+
+```bash
+python3 tests/run_wire_tests.py --exe build/BACnetExampleBSS          # Linux/macOS
+python tests\run_wire_tests.py --exe build\Release\BACnetExampleBSS.exe   # Windows
+```
+
+It ends with `ALL WIRE TESTS PASSED` (exit 0). CI runs it on Linux after the
+smoke test. [tests/README.md](tests/README.md) says what each check proves.
 
 
 ## The BACnet profile example series
