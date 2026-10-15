@@ -2036,6 +2036,7 @@ KeyCommand PollKey() {
     if (c == 'd' || c == 'D') return KeyCommand::DiscoverRemote;
     if (c == 'r' || c == 'R') return KeyCommand::RouterAnnounce;
     if (c == 'm' || c == 'M') return KeyCommand::Metrics;
+    if (c == 'k' || c == 'K') return KeyCommand::SimulatedPeerToggle;
     return KeyCommand::None;
 #else
     EnableRawInput();
@@ -2056,6 +2057,7 @@ KeyCommand PollKey() {
     if (buf[0] == 'd' || buf[0] == 'D') return KeyCommand::DiscoverRemote;
     if (buf[0] == 'r' || buf[0] == 'R') return KeyCommand::RouterAnnounce;
     if (buf[0] == 'm' || buf[0] == 'M') return KeyCommand::Metrics;
+    if (buf[0] == 'k' || buf[0] == 'K') return KeyCommand::SimulatedPeerToggle;
     return KeyCommand::None;
 #endif
 }
