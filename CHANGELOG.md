@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - unreleased
+
+Profile-functional (series bar): the sensor now performs the B-SS Profile
+Function - ANSI/ASHRAE 135-2024 Annex L.4.5, "Ability to provide values for any
+of its BACnet objects upon request" - with readings that change, and shows a
+Failure Mode. The BACnet Surface is unchanged (DS-RP-B, DM-DDB-B, DM-DOB-B; the
+same five objects).
+
+### Added
+
+- **Sensor Simulation** (`main.cpp` section 2, `SensorSimulationTick()`, labelled
+  Simulation in the README): once a second Analog Input 1 moves 0.5 C between
+  18.0 and 26.0, Binary Input 1 toggles every 3 s, Multi-State Input 1 steps
+  1 -> 2 -> 3 -> 1 every 4 s. Before, Binary Input 1 and Multi-State Input 1
+  were constants and Analog Input 1 changed only on an arrow key.
+- **Analog Input 1 `Reliability`** (optional property, now enabled). It reads
+  `no-fault-detected`, or `open-loop` while the simulated sensor wire is broken;
+  the stack derives the FAULT bit of `Status_Flags` from it (cl. 12.2.7, 12.2.9).
+  While broken the reading freezes. The wire is broken only through a test-only
+  hook: the environment variable `CAS_EXAMPLE_TEST_SENSOR_FAULT_FILE` names a
+  file, and the wire is broken while that file exists.
+- **Wire Tests** `tests/sensing_test.py` (the readings follow the Simulation over
+  12 s) and `tests/failure_modes_test.py` (broken and repaired wire; Error
+  UNKNOWN_OBJECT / UNKNOWN_PROPERTY / INVALID_ARRAY_INDEX per cl. 15.5.1.3.1;
+  WriteProperty rejected UNRECOGNIZED_SERVICE per cl. 18.9), with
+  `tests/bss_setup.py`. Every check is mutation-verified (tests/README.md).
+
+### Changed
+
+- The up/down keys nudge the simulated Analog Input 1 reading; the Simulation
+  carries on from the new value.
+- README: the scenario, the Simulation, the Wire Test table; TUTORIAL: replacing
+  the Simulation with hardware and reporting a sensor fault; PICS: Reliability
+  row, the objects' notes, Application_Software_Version 1.3.0.
+
 ## [1.2.3] - unreleased
 
 ### Fixed

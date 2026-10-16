@@ -7,14 +7,27 @@
 // This example shows the *minimum* needed to implement the BACnet "B-SS"
 // (Smart Sensor) device profile with the CAS BACnet Stack.
 //
-// A B-SS is "a simple sensing device with very limited resources" (ANSI/ASHRAE
-// 135, Annex L.4.5). Its only mandatory capability is:
+// "A B-SS is a simple sensing device with very limited resources." (ANSI/ASHRAE
+// 135-2024, Annex L.4.5). Its Profile Function is the one Data Sharing line of
+// that clause: "Ability to provide values for any of its BACnet objects upon
+// request" - a client reads the sensor and gets what it is measuring NOW. Its
+// only mandatory service is:
 //
 //     DS-RP-B  - respond to ReadProperty requests
 //
 // plus the ability to be discovered: it answers Who-Is with I-Am (handled
 // automatically by the stack) and announces itself with an unsolicited I-Am on
 // start-up.
+//
+// SIMULATION. This example has no real sensor, so section 2 below is a sensor
+// Simulation that stands in for the physical world: the temperature ramps up and
+// down, the binary input toggles and the multi-state input steps through its
+// states, all on a timer. It is NOT part of the BACnet Surface - on a real device
+// you replace SensorSimulationTick() with your hardware sampling. The Simulation
+// also has one Failure Mode: a broken sensor wire, which this device reports the
+// BACnet way, as Reliability OPEN_LOOP and the FAULT bit of Status_Flags
+// (cl. 12.2.7, 12.2.9). A Wire Test breaks the "wire" through a test-only hook
+// (SENSOR_FAULT_FILE_VARIABLE below); nothing on the network can.
 //
 // A B-SS does NOT require WriteProperty, COV, alarms/events, scheduling, or
 // trending - so this example deliberately does NOT enable any of those. That is
@@ -26,9 +39,9 @@
 // (a convention shared across this example series):
 //
 //     Device 389001          "Chipkin Example B-SS"    (instance configurable with --deviceID)
-//     Analog Input  1        "Bronze"     (REAL, degrees Celsius; starts at 21.5)
-//     Binary Input  1        "Emerald"    (active / inactive)
-//     Multi-State Input 1    "Hot Pink"   (an enumerated state, 1..3)
+//     Analog Input  1        "Bronze"     (REAL, degrees Celsius; ramps 18.0 .. 26.0)
+//     Binary Input  1        "Emerald"    (active / inactive; toggles every 3 s)
+//     Multi-State Input 1    "Hot Pink"   (an enumerated state, 1..3; steps every 4 s)
 //     Network Port 1         "Vermilion"  (the BACnet/IP port - required)
 //
 // To be a conformant BACnet device (Protocol_Revision 30) each object must
@@ -40,8 +53,8 @@
 // Get*Property callbacks below, and a few are turned on with SetPropertyEnabled.
 //
 // Interactive keys (handled by the shared helper): h = help, q = quit,
-// up/down = nudge Analog Input 1 by +/-1.1. Command line: --port <n>,
-// --deviceID <n>.
+// up/down = nudge the simulated Analog Input 1 reading by +/-1.1. Command line:
+// --port <n>, --deviceID <n>.
 //
 // All the UDP/stack plumbing lives in common/CASExampleHelper so this file can
 // stay focused on the BACnet logic.
@@ -53,7 +66,10 @@
                                     // LoadBACnetFunctions() before any BACnetStack_* call -
                                     // see the top of main() below.
 
+#include <chrono>
+#include <fstream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <string>
 
@@ -69,7 +85,7 @@ using namespace CASBACnetStackExampleConstants;
 // 1. Example + device configuration
 // -----------------------------------------------------------------------------
 static const char* APP_NAME = "BACnet B-SS (Smart Sensor) Example - C++";
-static const char* APP_VERSION = "1.2.3";
+static const char* APP_VERSION = "1.3.0";
 
 // The device instance. BACnet requires this to be configurable, so it defaults
 // to 389001 and can be overridden on the command line with --deviceID. Keep it
@@ -150,13 +166,106 @@ static uint8_t g_ipSubnetMask[4] = { 0, 0, 0, 0 };
 static uint8_t g_ipDefaultGateway[4] = { 0, 0, 0, 0 };
 static uint16_t g_bacnetIpUdpPort = 47808;
 
-// Analog Input 1's live present value (degrees Celsius). Starts at 21.5 and is
-// nudged by the up/down arrow keys. A real sensor would update this from
-// hardware instead.
-static float g_analogInput1Value = 21.5f;
+// The sensor objects' live values. The callbacks in section 3 only ever hand
+// these back; section 2 (the Simulation) is the only thing that changes them. On
+// a real device your hardware sampling updates them instead.
+static float g_analogInput1Value = 21.5f;       // degrees Celsius
+static uint32_t g_binaryInput1Value = 0;        // 0 = inactive, 1 = active
+static uint32_t g_multiStateInput1Value = 1;    // 1..MULTI_STATE_INPUT_NUMBER_OF_STATES
+
+// Analog Input 1's Reliability (cl. 12.2.9). NO_FAULT_DETECTED while the sensor
+// is healthy; OPEN_LOOP while its (simulated) wire is broken. The stack builds
+// the FAULT bit of Status_Flags from this property by itself (cl. 12.2.7: FAULT
+// is "Logical TRUE (1) if the Reliability property is present and does not have
+// a value of NO_FAULT_DETECTED") - the example only has to serve it.
+static const uint32_t PROPERTY_IDENTIFIER_RELIABILITY = 103;
+static const uint32_t RELIABILITY_NO_FAULT_DETECTED = 0;
+static const uint32_t RELIABILITY_OPEN_LOOP = 4;
+static uint32_t g_analogInput1Reliability = RELIABILITY_NO_FAULT_DETECTED;
 
 // -----------------------------------------------------------------------------
-// 2. Property "get" callbacks
+// 2. The sensor Simulation (NOT part of the BACnet Surface)
+//
+// Stands in for the physical world. Once a second:
+//   - Analog Input 1 moves 0.5 C, ramping up to 26.0 and back down to 18.0
+//   - Binary Input 1 toggles every 3 s
+//   - Multi-State Input 1 steps 1 -> 2 -> 3 -> 1 every 4 s
+// and the sensor wire is checked.
+//
+// The broken wire is a TEST-ONLY hook, not a feature: when the environment
+// variable named by SENSOR_FAULT_FILE_VARIABLE names a file, the wire counts as
+// broken for as long as that file exists. A Wire Test creates and deletes the
+// file to break and repair the sensor. While the wire is broken the reading
+// freezes at its last good value (a dead wire measures nothing new) and
+// Reliability reads OPEN_LOOP; once the file is gone the reading resumes and
+// Reliability returns to NO_FAULT_DETECTED. On a real device, set Reliability
+// from your hardware's own diagnostics (an ADC reading on the rails, a sensor
+// that stopped answering, ...).
+// -----------------------------------------------------------------------------
+static const char* const SENSOR_FAULT_FILE_VARIABLE = "CAS_EXAMPLE_TEST_SENSOR_FAULT_FILE";
+static std::string g_sensorFaultFile;   // read once at start-up; empty = no hook
+static const float ANALOG_INPUT_LOWEST = 18.0f;
+static const float ANALOG_INPUT_HIGHEST = 26.0f;
+static const float ANALOG_INPUT_STEP = 0.5f;
+static const unsigned BINARY_INPUT_TOGGLE_SECONDS = 3;
+static const unsigned MULTI_STATE_INPUT_STEP_SECONDS = 4;
+
+static std::string ReadEnvironmentVariable(const char* name) {
+#if defined(_WIN32)
+    char* environmentValue = NULL;
+    size_t environmentValueLength = 0;
+    if (_dupenv_s(&environmentValue, &environmentValueLength, name) != 0 || environmentValue == NULL) {
+        return std::string();
+    }
+    std::string result(environmentValue);
+    free(environmentValue);
+    return result;
+#else
+    const char* environmentValue = getenv(name);
+    return environmentValue != NULL ? std::string(environmentValue) : std::string();
+#endif
+}
+
+static bool SensorWireBroken() {
+    return !g_sensorFaultFile.empty() && std::ifstream(g_sensorFaultFile.c_str()).good();
+}
+
+static void SensorSimulationTick() {
+    static const std::chrono::steady_clock::time_point started = std::chrono::steady_clock::now();
+    static unsigned lastSecond = 0;
+    static float analogInputDirection = 1.0f;
+    const unsigned secondsRunning = (unsigned)std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - started).count();
+    if (secondsRunning == lastSecond) {
+        return;
+    }
+    lastSecond = secondsRunning;
+
+    const uint32_t reliability = SensorWireBroken() ? RELIABILITY_OPEN_LOOP : RELIABILITY_NO_FAULT_DETECTED;
+    if (reliability != g_analogInput1Reliability) {
+        g_analogInput1Reliability = reliability;
+        printf("Simulation: Analog Input 1 (Bronze) sensor wire %s - Reliability %s\n",
+               reliability == RELIABILITY_OPEN_LOOP ? "broken" : "repaired",
+               reliability == RELIABILITY_OPEN_LOOP ? "OPEN_LOOP" : "NO_FAULT_DETECTED");
+    }
+    if (g_analogInput1Reliability == RELIABILITY_NO_FAULT_DETECTED) {
+        if (g_analogInput1Value >= ANALOG_INPUT_HIGHEST) {
+            analogInputDirection = -1.0f;
+        } else if (g_analogInput1Value <= ANALOG_INPUT_LOWEST) {
+            analogInputDirection = 1.0f;
+        }
+        g_analogInput1Value += analogInputDirection * ANALOG_INPUT_STEP;
+    }
+    if (secondsRunning % BINARY_INPUT_TOGGLE_SECONDS == 0) {
+        g_binaryInput1Value = g_binaryInput1Value ? 0 : 1;
+    }
+    if (secondsRunning % MULTI_STATE_INPUT_STEP_SECONDS == 0) {
+        g_multiStateInput1Value = g_multiStateInput1Value % MULTI_STATE_INPUT_NUMBER_OF_STATES + 1;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// 3. Property "get" callbacks
 //
 // The stack calls these when a client reads a property. For each data type the
 // stack uses a separate callback. We return true (and fill *value) when we
@@ -263,7 +372,7 @@ bool GetPropertyEnumerated(const uint32_t deviceInstance, const uint16_t objectT
             // ON REAL HARDWARE: return your cached input state here - the same rule
             // as GetPropertyReal above applies (never block this callback on slow
             // I/O; sample on a timer/another thread and hand back the latest).
-            *value = 0; // inactive - the series-wide starting value
+            *value = g_binaryInput1Value;
             return true;
         }
         if (propertyIdentifier == PROPERTY_IDENTIFIER_POLARITY) {
@@ -272,10 +381,19 @@ bool GetPropertyEnumerated(const uint32_t deviceInstance, const uint16_t objectT
         }
     }
     if (objectType == OBJECT_TYPE_ANALOG_INPUT &&
-        objectInstance == ANALOG_INPUT_INSTANCE &&
-        propertyIdentifier == PROPERTY_IDENTIFIER_UNITS) {
-        *value = ENGINEERING_UNITS_DEGREES_CELSIUS;
-        return true;
+        objectInstance == ANALOG_INPUT_INSTANCE) {
+        if (propertyIdentifier == PROPERTY_IDENTIFIER_UNITS) {
+            *value = ENGINEERING_UNITS_DEGREES_CELSIUS;
+            return true;
+        }
+        // Reliability (enabled in main()). The stack also reads it through this
+        // callback to build Status_Flags, so once enabled it must always answer:
+        // if it declines, the stack silently substitutes 0 (no-fault-detected),
+        // and the sensor reports itself healthy forever.
+        if (propertyIdentifier == PROPERTY_IDENTIFIER_RELIABILITY) {
+            *value = g_analogInput1Reliability;
+            return true;
+        }
     }
     if (objectType == OBJECT_TYPE_NETWORK_PORT &&
         objectInstance == NETWORK_PORT_INSTANCE &&
@@ -299,7 +417,7 @@ bool GetPropertyUnsignedInteger(const uint32_t deviceInstance, const uint16_t ob
     if (objectType == OBJECT_TYPE_MULTI_STATE_INPUT &&
         objectInstance == MULTI_STATE_INPUT_INSTANCE) {
         if (propertyIdentifier == PROPERTY_IDENTIFIER_PRESENT_VALUE) {
-            *value = 1; // state 1 (valid range is 1..Number_Of_States)
+            *value = g_multiStateInput1Value; // valid range is 1..Number_Of_States
             return true;
         }
         if (propertyIdentifier == PROPERTY_IDENTIFIER_NUMBER_OF_STATES) {
@@ -440,7 +558,11 @@ bool GetPropertyCharString(const uint32_t deviceInstance, const uint16_t objectT
         // The one place in this file where naming an error is clearly right: the
         // client asked for State_Text[n] and this object has no element n. That
         // is not "no opinion" - it is a wrong read, and the spec has a code for
-        // it. Without this the client would silently receive an empty string.
+        // it. (At this Stack Pin the stack also checks n against the length
+        // GetPropertyUnsignedInteger serves for index 0 and answers
+        // invalid-array-index before it gets here; this line is what still
+        // answers correctly if that length and this table ever disagree -
+        // without it the client would silently receive an empty string.)
         *errorCode = ERROR_CODE_INVALID_ARRAY_INDEX;
         return false;
     }
@@ -487,7 +609,7 @@ bool GetPropertyCharString(const uint32_t deviceInstance, const uint16_t objectT
 }
 
 // -----------------------------------------------------------------------------
-// 3. main()
+// 4. main()
 // -----------------------------------------------------------------------------
 int main(int argc, char** argv) {
     // Show printf output immediately, even when stdout is piped to a file.
@@ -655,6 +777,18 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // Reliability is optional on an Analog Input; it is how a sensor says its
+    // reading cannot be trusted. Enabling it also gives the FAULT bit of
+    // Status_Flags its meaning - the stack derives that bit from it.
+    if (!BACnetStack_SetPropertyEnabled(g_deviceInstance, OBJECT_TYPE_ANALOG_INPUT,
+                                        ANALOG_INPUT_INSTANCE, PROPERTY_IDENTIFIER_RELIABILITY, true)) {
+        printf("Error: Failed to enable Reliability on Analog Input 1 (Bronze).\n");
+        return 1;
+    }
+
+    // The Simulation's test-only broken-wire hook (section 2).
+    g_sensorFaultFile = ReadEnvironmentVariable(SENSOR_FAULT_FILE_VARIABLE);
+
     // Who-Is is answered automatically. The spec also requires a device to
     // announce itself on start-up, so broadcast an unsolicited I-Am now (to the
     // local subnet broadcast - the Network Port's own network).
@@ -665,10 +799,12 @@ int main(int argc, char** argv) {
 
     // --- Run the stack ------------------------------------------------------
     // BACnetStack_Tick() processes incoming messages and timers. Call it
-    // continuously, and poll the keyboard for interactive commands.
+    // continuously, step the sensor Simulation beside it, and poll the keyboard
+    // for interactive commands.
     bool running = true;
     while (running) {
         BACnetStack_Tick();
+        SensorSimulationTick();
 
         switch (CASExampleHelper::PollKey()) {
             case CASExampleHelper::KeyCommand::Help:

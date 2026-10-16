@@ -58,13 +58,18 @@ commands above.
 .\build\Release\BACnetExampleBSS.exe [--port 47808] [--deviceID 389001]   # Windows
 ```
 
-Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1.
+Interactive keys while running: `h` help, `q` quit, up/down nudge the simulated Analog Input 1 reading.
 
 ## Conventions
 
 - Device is named "Chipkin Example B-SS"; objects use the series' colour names; vendor id 389.
 - Implement **only** the services and objects the B-SS profile requires - but
   expose **every required property** of each object for Protocol_Revision 30.
+- The sensor readings come from the **Simulation** in `main.cpp` section 2
+  (`SensorSimulationTick()`); it is outside the BACnet Surface and labelled so in
+  the README. Its broken-wire hook is test-only (`CAS_EXAMPLE_TEST_SENSOR_FAULT_FILE`,
+  an environment variable) - never a command-line option or a menu key.
+- This repository is the series template: keep it small and clean.
 - Match the surrounding code style: `const`-correct parameters, check every stack
   return value, keep `main.cpp` linear and well-commented.
 - **Never edit `common/` in this repo alone** - it is a vendored copy shared by
@@ -74,9 +79,11 @@ Interactive keys while running: `h` help, `q` quit, up/down nudge Analog Input 1
 
 ## How to verify a change
 
-The Wire Tests in `tests/` automate the discovery half of this (README "Wire
-Tests"): `python3 tests/run_wire_tests.py --exe build/BACnetExampleBSS`. Run them
-after any change. Beyond them, verification is behavioural:
+The Wire Tests in `tests/` automate this (README "Wire Tests"): discovery, the
+readings following the Simulation, and the Failure Modes -
+`python3 tests/run_wire_tests.py --exe build/BACnetExampleBSS`. Run them after any
+change. A new check must fail with its feature removed (tests/README.md has the
+mutation table). Beyond them, verification is behavioural:
 
 1. Build, then run one instance on a clear UDP port.
 2. With a BACnet client (e.g. the CAS BACnet Explorer), send **Who-Is** and

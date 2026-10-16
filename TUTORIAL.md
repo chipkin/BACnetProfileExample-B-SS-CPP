@@ -19,8 +19,34 @@ in this example is silent, and the section it lives in is
 The example is intentionally small so it's easy to change.
 
 **Change a sensor's value or name** - edit the constants / callbacks in
-`main.cpp` (e.g. the initial value of `g_analogInput1Value`, or the `"Bronze"`
-string in `GetPropertyCharString`).
+`main.cpp` (e.g. the Simulation's range and rates in section 2, or the
+`"Bronze"` string in `GetPropertyCharString`).
+
+**Replace the Simulation with your hardware** - section 2 of `main.cpp`
+(`SensorSimulationTick()`) is the only code that changes the sensor values; the
+`GetProperty*` callbacks just hand back `g_analogInput1Value`,
+`g_binaryInput1Value` and `g_multiStateInput1Value`. Replace the function body
+with your own sampling and keep the callbacks as they are. Sample on a timer or
+another thread and only *store* the result: the callbacks run on the
+`BACnetStack_Tick()` thread, so a callback that waits for an ADC conversion or an
+I2C transaction delays every BACnet request. Delete `SENSOR_FAULT_FILE_VARIABLE`
+and its environment-variable code - it is a test hook, not something to ship.
+
+**Report a sensor fault** - `Reliability` is how a BACnet sensor says "do not
+trust this reading" (cl. 12.2.9). It is optional, so it takes two steps: enable
+it with `BACnetStack_SetPropertyEnabled(... PROPERTY_IDENTIFIER_RELIABILITY ...)`
+and serve it from `GetPropertyEnumerated`. The stack then builds the FAULT bit of
+`Status_Flags` from it by itself (cl. 12.2.7) - you never serve `Status_Flags`.
+Once it is enabled, **always** answer it: the stack reads `Reliability` through
+your callback every time a client reads `Status_Flags`, and a callback that
+declines does not fail loudly - the stack substitutes the datatype default, `0`,
+which is `no-fault-detected`. A forgotten branch therefore reports a healthy
+sensor forever, with FAULT never set. (`failure_modes_test.py` is what catches
+that: it breaks the sensor and expects the fault.) Set it from
+your hardware's own diagnostics - `open-loop` (4) for a broken wire, `shorted-loop`
+(5), `over-range` (2) / `under-range` (3) for a reading on the rails, `no-sensor`
+(1) for a sensor that stopped answering. If you add Out_Of_Service writes later,
+cl. 12.2.10 makes `Reliability` writable while the object is out of service.
 
 **Change the device identity before you ship** - vendor ID, vendor name, model
 name, description, firmware revision and device name are all in the
@@ -133,7 +159,8 @@ property?" For Analog Input 1, the whole picture:
 | `Object_Type` | **stack** | generated |
 | `Object_List` | **stack** | generated (Device object) |
 | `Property_List` | **stack** | generated |
-| `Status_Flags` | **stack** | generated |
+| `Status_Flags` | **stack** | generated - FAULT from `Reliability`, the other three bits FALSE here |
+| `Reliability` | **you** | `GetPropertyEnumerated` (optional; enabled in `main()`) - the Simulation's broken wire sets it to `open-loop` |
 | `Event_State` | **stack**, sort of | no intrinsic alarming here, so nothing serves it — it reads `normal` only because `normal` is the enumeration's zero value and the stack substitutes a datatype default. Correct by coincidence, not design. |
 | `Out_Of_Service` | **you** | `GetPropertyBool` — matched on object **type only** |
 | `Present_Value` | **you** | `GetPropertyReal` |
@@ -157,7 +184,10 @@ rather than against "it looked fine in the explorer":
    compare the value against the PICS. `tests/run_wire_tests.py` reads them all
    and fails on any that does not return a value (README "Wire Tests") - keep it
    passing, then check the values yourself. `"undefined"`, `no-units` and `0` are the
-   three shapes a missed callback takes.
+   three shapes a missed callback takes. Its other two scripts check that the
+   readings change and that a fault reads as `Reliability` + FAULT - if you replace
+   the Simulation with hardware, they show you whether your sampling reaches the
+   wire.
 3. Diff a new object of a type against the existing one of that type. Anything
    that differs and shouldn't is a callback that matched on instance.
 4. Confirm the services you do **not** implement are still rejected - for B-SS,

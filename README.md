@@ -4,7 +4,10 @@ A minimal, copy-paste-friendly example showing how to implement the BACnet
 **B-SS (BACnet Smart Sensor)** device profile in C++ using the
 [CAS BACnet Stack](https://store.chipkin.com/services/stacks/bacnet-stack).
 It listens on **BACnet/IP (UDP 47808)**, answers **ReadProperty** requests, and
-is discoverable via **Who-Is / I-Am**.
+is discoverable via **Who-Is / I-Am**. Its three sensor readings change over time
+the way real ones do, and a broken sensor shows up as a **fault** a client can
+read. The sensors themselves are a [Simulation](#the-sensor-simulation);
+everything BACnet does with their readings is real.
 
 **[Download a prebuilt binary](https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/releases)**
 (Windows and Linux x64) - or build it yourself, see [Build](#build) below.
@@ -14,7 +17,7 @@ is discoverable via **Who-Is / I-Am**.
 - **[docs/PICS.md](docs/PICS.md)** - the Protocol Implementation Conformance
   Statement: every object, every property, and who answers it.
 
-> **Versions:** this document describes **example v1.2.3**, built and verified
+> **Versions:** this document describes **example v1.3.0**, built and verified
 > against **CAS BACnet Stack 6.0.23** (`6.x` @ `64b2cfac5`), at
 > **Protocol_Revision 30**, with the vendored `common/` helper at **v3.4.0**.
 > Running the example prints all three - if what it prints disagrees with this
@@ -47,11 +50,57 @@ application-specific. The result is conformant for **Protocol_Revision 30**.
 ```
 Device 389001  "Chipkin Example B-SS"   (Vendor 389 - Chipkin Automation Systems)
     │
-    ├── Analog Input 1       "Bronze"      Present_Value  21.5    (REAL, degrees Celsius)
-    ├── Binary Input 1       "Emerald"     Present_Value  inactive  (0 = inactive / 1 = active)
-    ├── Multi-State Input 1  "Hot Pink"    Present_Value  1       (state, 1..3)
+    ├── Analog Input 1       "Bronze"      Present_Value  21.5 -> ramps 18.0 .. 26.0  (REAL, degrees Celsius)
+    ├── Binary Input 1       "Emerald"     Present_Value  toggles every 3 s     (0 = inactive / 1 = active)
+    ├── Multi-State Input 1  "Hot Pink"    Present_Value  1 -> 2 -> 3 every 4 s (state, 1..3)
     └── Network Port 1       "Vermilion"   the BACnet/IP port     (required on every device)
 ```
+
+## The scenario: a sensor a controller reads
+
+What a B-SS is for, in one sentence, from Annex L.4.5 of ANSI/ASHRAE 135-2024:
+*"Ability to provide values for any of its BACnet objects upon request."* A
+controller or workstation (the **Peer** - any BACnet client, or the Python
+client in [`tests/`](tests/README.md)) reads the sensor and gets what it is
+measuring **now**:
+
+1. The Peer finds the sensor with **Who-Is** and reads its `Object_List`.
+2. It reads Analog Input 1 `Present_Value` - say `22.0` - and again a few
+   seconds later - `23.5`. The reading follows the (simulated) room temperature,
+   0.5 C a second. Binary Input 1 and Multi-State Input 1 change too.
+3. **Failure Mode - a broken sensor.** When the sensor wire breaks, the device
+   does not keep handing out a number as if nothing happened: Analog Input 1
+   `Reliability` reads `open-loop` (4) and the **FAULT** bit of `Status_Flags`
+   is TRUE - clause 12.2.7: FAULT is *"Logical TRUE (1) if the Reliability
+   property is present and does not have a value of NO_FAULT_DETECTED"*. The
+   reading stops changing. Repair the wire and `Reliability` returns to
+   `no-fault-detected`, FAULT clears, and the reading moves again.
+4. **Failure Mode - a request it cannot serve.** Reading an object or property
+   the sensor does not have, or an array element past the end, gets the error
+   clause 15.5.1.3.1 names (`unknown-object`, `unknown-property`,
+   `invalid-array-index`); a WriteProperty gets a **Reject**
+   `unrecognized-service`, because a B-SS is read-only.
+
+### The sensor Simulation
+
+A real smart sensor samples a thermistor, a contact and a selector switch. This
+example has none of them, so it **simulates** them - non-BACnet scaffolding,
+outside the BACnet Surface, in section 2 of [`main.cpp`](main.cpp)
+(`SensorSimulationTick()`, called beside `BACnetStack_Tick()`). Once a second:
+
+- the **temperature** (Analog Input 1) moves 0.5 C, ramping up to 26.0 and back
+  down to 18.0;
+- the **contact** (Binary Input 1) toggles every 3 s;
+- the **selector** (Multi-State Input 1) steps 1 -> 2 -> 3 -> 1 every 4 s.
+
+The **broken wire** is a test-only hook, not a feature: if the environment
+variable `CAS_EXAMPLE_TEST_SENSOR_FAULT_FILE` names a file, the wire counts as
+broken for as long as that file exists. The Wire Tests create and delete it.
+Nothing on the network can break the sensor.
+
+To port the example to hardware, replace `SensorSimulationTick()` with your own
+sampling (on a timer or another thread - never block the BACnet callbacks on
+slow I/O), and set `Reliability` from your hardware's own diagnostics.
 
 ## What this example supports
 
@@ -175,7 +224,7 @@ CMake at it: `cmake -B build -S . -D CAS_STACK_DIR=/path/to/cas-bacnet-stack`.
 Expected output:
 
 ```
-BACnet B-SS (Smart Sensor) Example - C++ v1.2.3
+BACnet B-SS (Smart Sensor) Example - C++ v1.3.0
 CAS BACnet Stack version: 6.0.23.0
 Common helper (common/) version: 3.4.0
 FYI: Listening for BACnet/IP on UDP port 47808 (Network Port 1).
@@ -214,11 +263,11 @@ While the example runs, these keys are available:
 |-----|--------|
 | `h` | Show the version information and this command list. |
 | `q` | Quit. |
-| up arrow | Increase Analog Input 1 (`Bronze`) by 1.1. |
-| down arrow | Decrease Analog Input 1 (`Bronze`) by 1.1. |
+| up arrow | Nudge the simulated Analog Input 1 (`Bronze`) reading up by 1.1. |
+| down arrow | Nudge the simulated Analog Input 1 (`Bronze`) reading down by 1.1. |
 
-The up/down keys change the live `Present_Value` of the analog input, so a client
-re-reading it sees the new value.
+The up/down keys move the simulated temperature; the Simulation carries on
+ramping from the new value, and a client re-reading it sees the change.
 
 ## Verify
 
@@ -236,8 +285,10 @@ Use a BACnet client such as the
    `"Chipkin Example B-SS"`; `Protocol_Revision` returns `30`; `Description` returns the
    profile description string.
 4. **Read a sensor** - ReadProperty Analog Input `1` -> `Present_Value` returns
-   `21.5`; `Units` returns `degrees-Celsius`; `Out_Of_Service` returns `false`;
-   `Object_Name` returns `"Bronze"`. Repeat for Binary Input `1` (`"Emerald"`,
+   the current simulated temperature (`21.5` at start-up, then 0.5 higher each
+   second); read it again and it has moved. `Units` returns `degrees-Celsius`;
+   `Reliability` returns `no-fault-detected`; `Status_Flags` returns all FALSE;
+   `Out_Of_Service` returns `false`; `Object_Name` returns `"Bronze"`. Repeat for Binary Input `1` (`"Emerald"`,
    has `Polarity`) and Multi-State Input `1` (`"Hot Pink"`, has `Number_Of_States`
    = 3). Every required property of every object is readable.
 5. **Confirm the profile boundary** - a **WriteProperty** to any object is
@@ -248,11 +299,16 @@ For a property-by-property review against the conformance statement, see
 
 ## Wire Tests
 
-The checks above, automated: a Python BACnet client drives the running example
-over BACnet/IP from outside it, the way a client discovers a device - Who-Is, the
-Device's `Object_List`, then for every object its `Property_List` and a
-ReadProperty of every property it lists. Every read must come back as a value; an
-Error, Reject or Abort fails the run. Python 3 standard library only:
+The checks above, automated: a Python BACnet client (the Peer) drives the running
+example over BACnet/IP from outside it. Python 3 standard library only.
+
+| Script | What it proves |
+|---|---|
+| `discovery_test.py` | Who-Is, the Device's `Object_List`, then for every object its `Property_List` and a ReadProperty of every property it lists - every read comes back as a value. |
+| `sensing_test.py` | **The Profile Function.** Reads the three sensors again and again for 12 s; the readings follow the Simulation (0.5 C steps, a toggle every 3 s, states in order). Fails against a sensor that serves constants. |
+| `failure_modes_test.py` | **The Failure Modes.** Breaks the simulated sensor wire: `Reliability` `open-loop`, `Status_Flags` FAULT, a frozen reading; repairs it: all clear, the reading moves. Then the errors for an unknown object / property / array index, and the Reject for a WriteProperty. |
+
+Run them all:
 
 ```bash
 python3 tests/run_wire_tests.py --exe build/BACnetExampleBSS          # Linux/macOS

@@ -18,16 +18,18 @@ see [README.md](../README.md).
 | **Vendor Identifier** | 389 |
 | **Product Name** | CAS BACnet Stack Example - B-SS |
 | **Product Model Number** | CAS BACnet Stack Example - B-SS |
-| **Application Software Version** | 1.2.3 |
+| **Application Software Version** | 1.3.0 |
 | **Firmware Revision** | 6.0.23.0 (the CAS BACnet Stack version) |
 | **BACnet Protocol Version** | 1 |
 | **BACnet Protocol Revision** | 30 |
 
 **Product Description:** a minimal read-only BACnet/IP sensing device built on
 the CAS BACnet Stack. It presents three sensor objects (Analog Input, Binary
-Input, Multi-State Input), answers ReadProperty for every required property of
-every object, and is discoverable by Who-Is / I-Am and Who-Has / I-Have. It is a
-tutorial for implementers of the B-SS profile.
+Input, Multi-State Input) whose readings follow a sensor Simulation, answers
+ReadProperty for every required property of every object, reports a broken
+sensor through Analog Input 1's Reliability and the FAULT bit of Status_Flags,
+and is discoverable by Who-Is / I-Am and Who-Has / I-Have. It is a tutorial for
+implementers of the B-SS profile.
 
 ## 2. BACnet standardized device profile (Annex L)
 
@@ -87,7 +89,7 @@ is writable.
 | Object type | Instance | Object_Name | Optional properties supported |
 |---|:---:|---|---|
 | Device | 389001 | Chipkin Example B-SS | Description |
-| Analog Input | 1 | Bronze | - |
+| Analog Input | 1 | Bronze | Reliability |
 | Binary Input | 1 | Emerald | - |
 | Multi-State Input | 1 | Hot Pink | State_Text |
 | Network Port | 1 | Vermilion | - |
@@ -156,7 +158,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Database_Revision | Unsigned | stack default, accepted (Generic UnsignedInteger default: `0`) | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Analog Input 1 "Bronze" - REAL, degrees Celsius; starts at 21.5
+### Analog Input 1 "Bronze" - REAL, degrees Celsius; the sensor Simulation ramps it 18.0 .. 26.0 at 0.5 C a second. Reliability reads no-fault-detected, or open-loop while the simulated sensor wire is broken; the stack derives Status_Flags FAULT from it
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -166,11 +168,12 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Present_Value | Real | app | no |
 | Status_Flags | BACnetStatusFlags | stack | no |
 | Event_State | BACnetEventState | stack default, accepted (Generic Enumerated default: `0`) | no |
+| Reliability *(optional, enabled)* | BACnetReliability | app | no |
 | Out_Of_Service | Boolean | app | no |
 | Units | BACnetEngineeringUnits | app | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Binary Input 1 "Emerald" - starts inactive
+### Binary Input 1 "Emerald" - the sensor Simulation toggles it every 3 s, starting inactive
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
@@ -184,7 +187,7 @@ Every object this example creates, and every REQUIRED property of each (per ANSI
 | Polarity | BACnetPolarity | app | no |
 | Property_List | BACnetARRAY[N] of BACnetPropertyIdentifier | stack | no |
 
-### Multi-state Input 1 "Hot Pink" - state 1 of 3: On, Off, Auto
+### Multi-state Input 1 "Hot Pink" - 3 states: On, Off, Auto; the sensor Simulation steps 1 -> 2 -> 3 -> 1 every 4 s
 
 | Property | Datatype | Served by | Writable |
 |---|---|---|:---:|
