@@ -39,6 +39,7 @@ same five objects).
 - README: the scenario, the Simulation, the Wire Test table; TUTORIAL: replacing
   the Simulation with hardware and reporting a sensor fault; PICS: Reliability
   row, the objects' notes, Application_Software_Version 1.3.0.
+- Wire Tests use the shared `wiretest/` 0.7.0: the Peer is `wiretest.Client(retries=3, timeout=0.6)` (the short timeout with visible `[RETRY]`s is now a Client option) and the Reject reason is `Answer.reject_reason` (was `bss_setup.reject_reason`).
 
 ## [1.2.3] - unreleased
 

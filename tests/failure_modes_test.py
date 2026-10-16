@@ -67,7 +67,7 @@ def refusals(sensor):
     before = sensor.value(ANALOG_INPUT, PROPERTY_PRESENT_VALUE)
     answer = sensor.write(ANALOG_INPUT, PROPERTY_PRESENT_VALUE, wiretest.application_real(99.0))
     record("WriteProperty of Analog Input 1 Present_Value -> Reject UNRECOGNIZED_SERVICE (a B-SS is read-only)",
-           setup.reject_reason(answer) == setup.REJECT_REASON_UNRECOGNIZED_SERVICE, answer.describe())
+           answer.reject_reason == wiretest.REJECT_REASON_UNRECOGNIZED_SERVICE, answer.describe())
     after = sensor.value(ANALOG_INPUT, PROPERTY_PRESENT_VALUE)
     record("... and the reading is not 99.0 afterwards", after != 99.0, f"read {before} then {after}")
 

@@ -60,7 +60,6 @@ STATUS_FLAGS_NORMAL = [False, False, False, False]
 STATUS_FLAGS_FAULT = [False, True, False, False]
 ERROR_CLASS_OBJECT, ERROR_CLASS_PROPERTY = 1, 2
 ERROR_CODE_UNKNOWN_OBJECT, ERROR_CODE_UNKNOWN_PROPERTY, ERROR_CODE_INVALID_ARRAY_INDEX = 31, 32, 42
-REJECT_REASON_UNRECOGNIZED_SERVICE = 9
 
 
 def parser(description):
@@ -84,19 +83,19 @@ def start_sensor(args, fault_file=None):
 
 
 class Sensor:
-    """The smart sensor as the Peer sees it: a wiretest.Client aimed at its port. A request
+    """The smart sensor as the Peer sees it: a wiretest.Client aimed at its port, with a short
+    timeout and visible retries (wiretest 0.7.0 Client(retries=, timeout=)): a request
     unanswered after REQUEST_TIMEOUT is sent again, up to RETRIES times, as a BACnet client
-    does (Number_Of_APDU_Retries); each resend prints [RETRY], so a lost request is visible,
-    not hidden. A busy Windows host loses the odd UDP datagram even on loopback, where an
-    answer takes milliseconds - so the timeout is short and a loss costs well under a second."""
+    does (Number_Of_APDU_Retries), each resend printing [RETRY]. A busy Windows host loses the
+    odd UDP datagram even on loopback, where an answer takes milliseconds - so the timeout is
+    short and a loss costs well under a second."""
 
     def __init__(self, args):
-        self.client = wiretest.Client(retries=RETRIES)
+        self.client = wiretest.Client(retries=RETRIES, timeout=REQUEST_TIMEOUT)
         self.port = args.port
 
     def read(self, object_identifier, property_identifier, array_index=None):
-        return self.client.read_property(self.port, *object_identifier, property_identifier, array_index,
-                                        timeout=REQUEST_TIMEOUT)
+        return self.client.read_property(self.port, *object_identifier, property_identifier, array_index)
 
     def value(self, object_identifier, property_identifier, array_index=None):
         """The decoded value, or 'no answer' / 'error' so a comparison fails readably."""
@@ -106,18 +105,10 @@ class Sensor:
         return answer.value if answer.ok else "error"
 
     def write(self, object_identifier, property_identifier, value_octets):
-        return self.client.write_property(self.port, *object_identifier, property_identifier, value_octets,
-                                          timeout=REQUEST_TIMEOUT)
+        return self.client.write_property(self.port, *object_identifier, property_identifier, value_octets)
 
     def close(self):
         self.client.close()
-
-
-def reject_reason(answer):
-    """The reason of a Reject PDU (cl. 20.1.8: type, invoke id, reason), or None."""
-    if not answer.answered or answer.frame.pdu_type != wiretest.PDU_REJECT:
-        return None
-    return answer.frame.payload[2]
 
 
 def remove(path):
