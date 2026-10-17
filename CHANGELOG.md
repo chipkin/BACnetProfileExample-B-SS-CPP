@@ -33,6 +33,10 @@ same five objects).
   `tests/bss_setup.py`. Every check is mutation-verified (tests/README.md).
 
 ### Changed
+- The comments in `main.cpp` and `TUTORIAL.md` follow the current stack: an object the application does not
+  name reads back as `"Object <type>,<instance>"` (cas-bacnet-stack #3290), not `"undefined"`, so two
+  half-added objects no longer share a name; and a BACnet/IP Network Port's `APDU_Length` is generated
+  by the stack, not refused (cas-bacnet-stack #3947).
 
 - The up/down keys nudge the simulated Analog Input 1 reading; the Simulation
   carries on from the new value.

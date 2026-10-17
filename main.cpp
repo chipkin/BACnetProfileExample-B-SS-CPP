@@ -288,12 +288,15 @@ static void SensorSimulationTick() {
 // in this file, and the opposite of what most people assume. It does NOT
 // reliably produce a BACnet error. The stack errors only for the handful of
 // properties it refuses to invent: Present_Value, Number_Of_States,
-// Relinquish_Default, Local_Date, Local_Time, and a Network Port's APDU_Length
-// (declining one of those now reads back as Error: read-access-denied, where
-// older stack versions said value-not-initialized).
+// Relinquish_Default, Local_Date and Local_Time (declining one of those now reads
+// back as Error: read-access-denied, where older stack versions said
+// value-not-initialized). A Network Port's APDU_Length is not one of them here:
+// for this device's BACnet/IP port the stack generates it and never asks.
+// (Only a PTP, LonTalk, Zigbee or serial port asks the application for it.)
 // For EVERYTHING ELSE, a false return means the stack SILENTLY SUBSTITUTES a
 // default:
-//     Object_Name -> the literal string "undefined"
+//     Object_Name -> "Object <type>,<instance>", e.g. "Object 0,2"
+//                    (older stacks used the literal string "undefined")
 //     Units       -> no-units (95)
 //     otherwise   -> a datatype zero-value
 //
@@ -318,11 +321,11 @@ static void SensorSimulationTick() {
 //   - GetPropertyBool matches on TYPE ONLY, so a new instance gets Out_Of_Service
 //     for free.
 // So a half-added object does NOT fail loudly. Its Present_Value errors (that one
-// is in the list above) - but its Object_Name reads back as "undefined" and its
-// Units as no-units, with no error at all. Add two objects that way and BOTH
-// report Object_Name "undefined": duplicate object names within one device, which
-// is a spec violation and a hard BTL failure, and which every scan tool will show
-// you as a healthy object. The device looks fine and is non-conformant.
+// is in the list above) - but its Object_Name reads back as a made-up
+// "Object <type>,<instance>" and its Units as no-units, with no error at all.
+// Every scan tool shows it as a healthy object with a placeholder name and the
+// wrong units. (Older stacks made up the name "undefined" for every such object,
+// so two of them in one device even shared a name - a BTL failure.)
 //
 // So: when you add an instance, walk EVERY callback below, then read back every
 // required property of the new object and DIFF IT against the existing one. Do
