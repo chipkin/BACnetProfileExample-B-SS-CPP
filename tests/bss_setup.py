@@ -66,8 +66,8 @@ def parser(description):
     arguments = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     arguments.add_argument("--exe", default=str(wiretest.default_exe(REPOSITORY, "BACnetExampleBSS")),
                            help="path to BACnetExampleBSS (default: build/BACnetExampleBSS)")
-    arguments.add_argument("--port", type=int, default=47821,
-                           help="the smart sensor's UDP port (default 47821)")
+    arguments.add_argument("--port", type=int, default=47820,
+                           help="the smart sensor's UDP port (default 47820)")
     return arguments
 
 

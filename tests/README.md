@@ -20,7 +20,7 @@ python3 tests/run_wire_tests.py --exe build/BACnetExampleBSS
 
 On Windows, `--exe build\Release\BACnetExampleBSS.exe`. It ends with
 `ALL WIRE TESTS PASSED` (exit 0) or the scripts that failed. `--port` (default
-47821) is the UDP port the test starts the sensor on. It takes about 40 seconds.
+47820) is the UDP port the test starts the sensor on. It takes about 50 seconds.
 CI (`.github/workflows/release.yml`) runs it on Linux after the smoke test.
 
 ## The setup
@@ -65,6 +65,35 @@ folder, and the sensor wire is broken for as long as that file exists.
    **`FD_Subscription_Lifetime` (419)** are each listed and read as a value - one
    check per issue (#20, #21, #22), the three reads Explorer 4.23.2.0 found
    failing.
+5. Device **`Database_Revision`** reads 5: the stack starts it at 0 and adds one
+   for each object added at start-up (the Device and its four objects), and
+   nothing changes the object database afterwards (cl. 12.11; docs/PICS.md).
+
+## `configuration_test.py` - the command line: a configurable identity, honest help
+
+BACnet requires the Device's Object_Identifier and Object_Name to be
+configurable (135-2024 cl. 12.1.1.3, 12.1.1.4); Object_Name must be unique
+across the internetwork, so two units cannot share a compile-time name. The
+sensor is started four ways:
+
+1. **No options (control):** Device 389001 answers Who-Is, and its
+   `Object_Name` is the default `Chipkin Example B-SS`.
+2. **`--deviceID 389901 --deviceName "Chipkin Example B-SS Unit 2"`:** the
+   device answers Who-Is as 389901; `Object_Name` reads the configured name;
+   a read of Device 389001 gets Error OBJECT / UNKNOWN_OBJECT (1/31); the
+   ready line names the configured device; a Who-Has by the configured name
+   gets an I-Have from Device 389901 with that name (DM-DOB-B).
+3. **Boundaries:** an empty name and a 256-byte name each print a warning and
+   keep the default; a 255-byte name (the limit) reads back whole.
+4. **`--help` and `--xml`:** the help lists `--port`, `--deviceID`,
+   `--deviceName` and `--xml`, and not `--dcc-password` (a B-SS has no
+   DeviceCommunicationControl, so the option would do nothing); started with
+   `--xml`, the console shows a `<BACnetMessage>` block for a ReadProperty.
+
+Mutation (2026-10-22, Windows): `GetPropertyCharString` serving the constant
+`DEVICE_NAME` instead of the configured name fails 3 of 12 checks (the
+configured name, the Who-Has, the 255-byte name). The binary built before the
+help fix fails 2 of 18 (`--dcc-password` listed; no XML block with `--xml`).
 
 ## `sensing_test.py` - the readings follow the sensor (the Profile Function)
 

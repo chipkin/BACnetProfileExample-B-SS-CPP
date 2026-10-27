@@ -54,8 +54,8 @@ commands above.
 ## Run
 
 ```bash
-./build/BACnetExampleBSS [--port 47808] [--deviceID 389001]   # Linux/macOS
-.\build\Release\BACnetExampleBSS.exe [--port 47808] [--deviceID 389001]   # Windows
+./build/BACnetExampleBSS [--port 47808] [--deviceID 389001] [--deviceName "Chipkin Example B-SS"]   # Linux/macOS
+.\build\Release\BACnetExampleBSS.exe [--port 47808] [--deviceID 389001] [--deviceName "Chipkin Example B-SS"]   # Windows
 ```
 
 Interactive keys while running: `h` help, `q` quit, up/down nudge the simulated Analog Input 1 reading.
