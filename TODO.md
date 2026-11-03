@@ -1,6 +1,6 @@
 # TODO
 
-Open items and known limits at 1.4.0. Nothing here stops the example from
+Open items and known limits at 1.4.1. Nothing here stops the example from
 building, running or answering a client as [README.md](README.md) describes. Where
 a line has a `ref:` tag, quote it when you contact Chipkin support.
 
@@ -11,13 +11,15 @@ a line has a `ref:` tag, quote it when you contact Chipkin support.
   helper (the same copy is in every example of the series) does this, so a router or
   gateway's reply that cl. 6.4.2 requires to be a broadcast goes only to the
   requester. No effect on this sensor has been observed. Fix: change `common/`, then
-  copy it into every example. (ref: chipkin/chipkin-bacnet-testing-tool#698)
+  copy it into every example.
 - **The device hears its own broadcasts.** The operating system delivers a datagram
   sent to the subnet broadcast address back to the sending socket, so the start-up
   I-Am (and any Who-Is answer) is received by the device itself. The stack logs this
-  as `Error:` lines at start-up (see the README); it is harmless on a sensor. The
-  stack does not yet treat these as its own transmissions, which on a router becomes a
-  broadcast storm. (ref: chipkin/cas-bacnet-stack#4604)
+  as `Error:` lines at start-up (see the README); it is harmless on a sensor. Since
+  stack 6.x `1e7dffe2b` a router's BACnet/IP port drops its own looped-back
+  broadcast, so on a router this no longer becomes a broadcast storm; a device with
+  no router port, like this one, still receives its own. (ref:
+  chipkin/cas-bacnet-stack#4604)
 
 ## Not implemented, on purpose
 

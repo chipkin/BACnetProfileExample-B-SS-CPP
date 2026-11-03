@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+## [1.4.1] - 2026-11-02
+
+Built on CAS BACnet Stack 6.x (`1e7dffe2b`).
+
+### Changed
+
+- **Updated to CAS BACnet Stack 6.x `1e7dffe2b`.** The README and PICS name the
+  new version. In this stack a router's BACnet/IP port no longer acts on its own
+  broadcast looped back by the host (cas-bacnet-stack#4604); this sensor is not a
+  router, and still hears its own start-up I-Am, which is harmless.
+- **A BACnet client on the same computer still hears the device's I-Am and
+  I-Have** (vendored `common/` 3.6.1). This stack version leaves the address of a
+  broadcast it chooses itself, such as the I-Am that answers a Who-Is, to the
+  application, and the example sends it to the local subnet broadcast address.
+  That reaches only the device's own UDP port, so the example also sends the same
+  frame as a unicast to the last client that wrote to it from another UDP port.
+  Only a frame the stack addresses itself is copied (a network layer message, or
+  an unconfirmed I-Am or I-Have, in an Original-Unicast-NPDU or
+  Original-Broadcast-NPDU); an event notification or a BBMD Forwarded-NPDU is not.
+- **README:** the profile example table is the same in every example. The five
+  blocked examples (B-ACC, B-AACC, B-AS, B-ACCR, B-DAP) name the stack issue they
+  wait on, and B-LSC is no longer marked in progress.
 
 ## [1.4.0] - 2026-10-27
 
@@ -164,7 +185,8 @@ Built on CAS BACnet Stack 6.x (`abd4cee1`, 6.0.21).
 - Cross-platform CMake build, with the CAS BACnet Stack as a git submodule
   (clone with `--recursive`) and Windows and Linux release binaries.
 
-[Unreleased]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/chipkin/BACnetProfileExample-B-SS-CPP/compare/v1.0.2...v1.2.0

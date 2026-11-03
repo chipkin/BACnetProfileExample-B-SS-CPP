@@ -7,8 +7,8 @@ network addresses.
 
 | | |
 |---|---|
-| Date | 2026-10-27 |
-| Example | BACnet B-SS (Smart Sensor) Example - C++ v1.3.0 build carrying the changes released in 1.4.0, built on CAS BACnet Stack 6.x @ 69b6249f |
+| Date | 2026-10-30 |
+| Example | BACnet B-SS (Smart Sensor) Example - C++ v1.4.0, built on CAS BACnet Stack 6.x @ 69b6249f |
 | Profile | B-SS (BACnet Smart Sensor) |
 | Transport | BACnet/IP, UDP port 47820 |
 | VeriBACnet | 0.20.0 (its test device uses CAS BACnet Stack 6.0.23.0) |
